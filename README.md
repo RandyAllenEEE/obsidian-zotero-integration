@@ -39,7 +39,7 @@
 * **Note Import Location**: 设置文献笔记存放的文件夹（例如：`文献/`）。
 
 ### 2. 🎨 标注颜色映射 (Annotation Colors)
-本插件附带的模板 (`template.md`) 能够识别 Zotero PDF 阅读器中的颜色，并将其分类到不同的章节，这一配置最好和zotero **[Ethereal Style]https://github.com/MuiseDestiny/ZoteroStyle** 插件联动：
+本插件附带的模板 (`template.md`) 能够识别 Zotero PDF 阅读器中的颜色，并将其分类到不同的章节，这一配置最好和zotero **[Ethereal Style](https://github.com/MuiseDestiny/ZoteroStyle)** 插件联动：
 
 * 🟨 **#ffd400 (Yellow)**: 背景 (Background)
 * 🟥 **#ff6666 (Red)**: 重点 (Important/Focus)
@@ -76,4 +76,5 @@ A: 这是为了防止重新导入文献时覆盖您自己在 Obsidian 中手动�
 
 **Q: 原始文档在哪里？**
 A: 插件的完整原始文档请参考 [这里](https://github.com/mgmeyers/obsidian-zotero-integration/blob/main/docs/README.md)。
+
 
