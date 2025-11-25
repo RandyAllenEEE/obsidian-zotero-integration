@@ -38,7 +38,10 @@ book_title: "{{ publicationTitle | default('') }}"{% endif %}
 
 ## 方法
 
+## 创新点
+
 ## 结论
+
 {% endif -%}{% endpersist %}
 
 # 标注
