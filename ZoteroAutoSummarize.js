@@ -1,9 +1,7 @@
 const fs = require('fs');
 const path = require('path');
-// Notice 和 requestUrl 是全局变量，无需 require
 
 module.exports = {
-    // 1. 设置定义
     settings: {
         name: "Zotero AI Summarizer",
         author: "Gemini",
@@ -45,11 +43,10 @@ module.exports = {
         }
     },
 
-    // 2. 入口函数
     entry: async (params, settings) => {
         const { app } = params;
-
-        // --- 获取配置 ---
+        
+        // --- 参数初始化 ---
         const config = {
             dataDir: settings["zoteroDataDir"],
             apiKey: settings["apiKey"],
@@ -59,10 +56,8 @@ module.exports = {
             maxText: parseInt(settings["maxTextLength"]) || 50000
         };
 
-        // console.log("🛠️ [ZoteroAI] 配置加载:", config);
-
         if (!config.apiKey) {
-            new Notice("❌ API Key 未配置");
+            new Notice("❌ API Key 未配置，请在 QuickAdd 设置中填写");
             return;
         }
 
@@ -72,25 +67,39 @@ module.exports = {
             return;
         }
 
-        // 读取文件
         let fileContent = await app.vault.read(activeFile);
-        const frontmatterMatch = fileContent.match(/^---\s*[\s\S]*?---/);
         
-        if (frontmatterMatch) {
-            const yamlContent = frontmatterMatch[0];
-            const hasFirst = yamlContent.includes("first_import_time:");
-            const hasLast = yamlContent.includes("last_import_time:");
+        // --- 核心逻辑修复 (严格匹配版) ---
+        
+        // 1. 提取 YAML 中的 latest_import_time
+        // 匹配：latest_import_time: "2025-11-26 07:48:36" (支持带/不带引号)
+        const yamlTimeMatch = fileContent.match(/^latest_import_time:\s*["']?([\d-:\s]+)["']?/m);
+        
+        // 2. 提取 Body 中的 First_Import_Time (严格匹配双冒号)
+        // 匹配：First_Import_Time:: 2025-11-26 07:48:36
+        // 不匹配：- First_Import_Time: ...
+        const bodyTimeMatch = fileContent.match(/First_Import_Time::\s*([\d-:\s]+)/);
 
-            if (hasFirst && hasLast) {
-                new Notice("🔄 更新导入：跳过 AI 总结");
+        if (yamlTimeMatch && bodyTimeMatch) {
+            const yamlTime = yamlTimeMatch[1].trim();
+            const bodyTime = bodyTimeMatch[1].trim();
+
+            console.log(`🔍 [ZoteroAI] 时间校验: YAML[${yamlTime}] vs Body[${bodyTime}]`);
+
+            // 如果两个时间不一致，说明是更新导入
+            if (yamlTime !== bodyTime) {
+                new Notice("🔄 检测到更新导入，跳过 AI 总结");
                 return; 
             }
-            if (!hasFirst) return; 
+        } else {
+            console.warn("⚠️ [ZoteroAI] 时间戳提取失败。YAML匹配:", yamlTimeMatch, "Body匹配:", bodyTimeMatch);
+            new Notice("⚠️ 无法识别时间戳 (First_Import_Time::)，请检查模板格式");
+            return;
         }
 
-        new Notice("✨ 首次导入：正在初始化...");
+        new Notice("✨ 首次导入：正在初始化 AI 分析...");
 
-        // 提取 PDF 路径
+        // 3. 提取 Zotero Link
         const zoteroLinkMatch = fileContent.match(/zotero:\/\/select\/library\/items\/([A-Z0-9]+)/);
         if (!zoteroLinkMatch || !zoteroLinkMatch[1]) {
             new Notice("❌ 未找到 Zotero Link");
@@ -99,12 +108,11 @@ module.exports = {
         const itemKey = zoteroLinkMatch[1];
         
         const storageDir = path.join(config.dataDir, "storage", itemKey);
-
         if (!fs.existsSync(storageDir)) {
             new Notice(`❌ 找不到目录: ${storageDir}`);
             return;
         }
-
+        
         const files = fs.readdirSync(storageDir);
         const pdfFile = files.find(f => f.toLowerCase().endsWith(".pdf"));
         if (!pdfFile) {
@@ -113,12 +121,11 @@ module.exports = {
         }
         const pdfFullPath = path.join(storageDir, pdfFile);
 
-        // 读取 PDF buffer
+        // 4. 读取 PDF
         const pdfBuffer = fs.readFileSync(pdfFullPath);
         
         if (!window.pdfjsLib) new Notice("⚙️ 正在唤醒 PDF 引擎...", 2000);
         
-        // 提取文本
         const textContent = await smartExtractText(app, pdfBuffer, config.maxPages);
 
         if (!textContent || textContent.length < 100) {
@@ -126,7 +133,7 @@ module.exports = {
             return;
         }
 
-        // 调用 AI
+        // 5. 调用 AI
         const prompt = `
         你是一个学术助手。请阅读附件中的论文，并严格按照以下 Markdown 格式输出内容（不要输出 markdown 代码块标记，直接输出内容）：
         
@@ -172,10 +179,15 @@ module.exports = {
 
             const aiText = response.json.choices[0].message.content;
 
-            // 写入文件
+// 6. 写入文件
             fileContent = await app.vault.read(activeFile); 
+            
+            // 【核心修复】正则逻辑升级
+            // 1. 寻找以 "## 概要" 开头的内容
+            // 2. 并在遇到 "%% end notes %%" (优先) 或者 "# 标注"、"# 导入记录" 之前停止
+            // 3. 这样就保护了 Zotero 的结束标签不被删除
             const newContent = fileContent.replace(
-                /(## 概要[\s\S]*?)(?=# 标注)/, 
+                /(## 概要[\s\S]*?)(?=(\s*%% end notes %%|\s*# 标注|\s*# 导入记录))/i, 
                 aiText + "\n\n"
             );
 
@@ -183,7 +195,7 @@ module.exports = {
                 await app.vault.modify(activeFile, newContent);
                 new Notice("✅ AI 摘要已写入！");
             } else {
-                new Notice("⚠️ 写入失败：未找到替换位置");
+                new Notice("⚠️ 写入失败：未找到替换位置 (## 概要)");
             }
         } catch (error) {
             console.error(error);
@@ -198,11 +210,7 @@ async function smartExtractText(app, arrayBuffer, maxPagesConfig) {
     if (!window.pdfjsLib) {
         await silentWarmup(app);
     }
-
-    if (!window.pdfjsLib) {
-        console.error("❌ 唤醒失败");
-        return null;
-    }
+    if (!window.pdfjsLib) return null;
 
     try {
         const doc = await window.pdfjsLib.getDocument(arrayBuffer).promise;
@@ -216,7 +224,6 @@ async function smartExtractText(app, arrayBuffer, maxPagesConfig) {
         }
         return fullText;
     } catch (e) {
-        // 如果这里偶尔还报 transport destroyed，通常不影响结果
         console.error("解析警告:", e); 
         return null;
     }
@@ -236,18 +243,15 @@ async function silentWarmup(app) {
         } catch (e) { return; }
     }
 
-    // 后台打开
     const leaf = app.workspace.getLeaf(true); 
     await leaf.openFile(triggerFile, { active: false }); 
 
-    // 等待引擎出现
     let attempts = 0;
     while (!window.pdfjsLib && attempts < 20) {
         await new Promise(r => setTimeout(r, 100));
         attempts++;
     }
 
-    // 【核心修复】: 即使检测到了 pdfjsLib，再多等 500ms，防止过早 detach 导致 Transport destroyed
     await new Promise(r => setTimeout(r, 500));
 
     leaf.detach();
