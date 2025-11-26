@@ -13,12 +13,12 @@ languages: "{{ language | default('') }}"
 type: "{{ (itemType | default('')) }}{{ ' ' + thesisType if thesisType else '' }}"{% if itemType == "journalArticle" %}
 journal: "{{ (journalAbbreviation if journalAbbreviation else publicationTitle) | default('') }}"{% elif itemType == "thesis" %}
 university: "{{ university | default('') }}"{% elif itemType == "conferencePaper" %}
-conference: "{{ publicationTitle | default('') }}"{% elif itemType == "bookSection" %}
+conference: "{{ conferenceName | default('') }}"{% elif itemType == "bookSection" %}
 book_title: "{{ publicationTitle | default('') }}"{% endif %}
-{% if extra %}{% set search_keys = ["Company", "Distributor", "Institution", "Label", "Publisher", "CLC", "major", "remark", "abstractTranslation", "download", "album", "foundation", "original-container-title"] %}{% set display_keys = ["remark", "foundation"] %}{% set delimiter = "|||SPLIT|||" %}{% set temp_extra = extra %}{% for key in search_keys %}{% set key_string = key + ": " %}{% set key_with_space = " " + key_string %}{% set key_with_newline = "\n" + key_string %}{% set temp_extra = temp_extra | replace(key_with_space, delimiter + key_with_space) %}{% set temp_extra = temp_extra | replace(key_with_newline, delimiter + key_with_newline) %}{% endfor %}{% set parts = temp_extra.split(delimiter) %}{% for part in parts %}{% set part = part | trim %}{% set colon_index = part.indexOf(": ") %}{% if colon_index != -1 %}{% set key_name = part.slice(0, colon_index) | trim | lower %}{% set value_content = part.slice(colon_index + 2) | trim %}{% if key_name in display_keys %}{{ key_name }}: "{{ value_content }}"
+{% if extra %}{% set search_keys = ["Company", "Distributor", "Institution", "Label", "Publisher", "CLC", "major", "remark", "abstractTranslation", "download", "album", "foundation", "original-container-title", "original-title", "CNKICite"] %}{% set display_keys = ["remark", "foundation"] %}{% set delimiter = "|||SPLIT|||" %}{% set temp_extra = extra %}{% for key in search_keys %}{% set key_string = key + ": " %}{% set key_with_space = " " + key_string %}{% set key_with_newline = "\n" + key_string %}{% set temp_extra = temp_extra | replace(key_with_space, delimiter + key_with_space) %}{% set temp_extra = temp_extra | replace(key_with_newline, delimiter + key_with_newline) %}{% endfor %}{% set parts = temp_extra.split(delimiter) %}{% for part in parts %}{% set part = part | trim %}{% set colon_index = part.indexOf(": ") %}{% if colon_index != -1 %}{% set key_name = part.slice(0, colon_index) | trim | lower %}{% set value_content = part.slice(colon_index + 2) | trim %}{% if key_name in display_keys %}{{ key_name }}: "{{ value_content }}"
 {% endif %}{% endif %}{% endfor %}{% endif %}
+latest_import_time: "{{ importDate | format('YYYY-MM-DD HH:mm:ss') }}"
 ---
-
 # 论文信息
 ## 链接
 - **Url**: [Open online]({{url}})
@@ -28,7 +28,8 @@ book_title: "{{ publicationTitle | default('') }}"{% endif %}
 {{abstractNote}}
 
 # 笔记
-{% persist "notes" -%}{% if lastImportDate.valueOf() == 0 %}
+{% persist "notes" -%}
+{% if lastImportDate.valueOf() == 0 %}
 
 ## 概要
 
@@ -42,7 +43,8 @@ book_title: "{{ publicationTitle | default('') }}"{% endif %}
 
 ## 结论
 
-{% endif -%}{% endpersist %}
+{% endif -%}
+{% endpersist %}
 
 # 标注
 ## 背景
@@ -135,6 +137,9 @@ book_title: "{{ publicationTitle | default('') }}"{% endif %}
 {% endif %}{% endfor %}
 
 # 导入记录
+{% persist "creation_date" %}{% if lastImportDate.valueOf() == 0 %}
+First_Import_Time:: {{ importDate | format('YYYY-MM-DD HH:mm:ss') }}
+{% endif %}{% endpersist %}
 {% persist "annotations" -%}
 {% set newAnnotations = annotations | filterby("date", "dateafter", lastImportDate) -%}
 {% if newAnnotations.length > 0 %}
