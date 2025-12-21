@@ -250,49 +250,147 @@ function SettingsComponent({
           className={`checkbox-container${concat ? ' is-enabled' : ''}`}
         />
       </SettingItem>
-      <SettingItem name="Citation Formats" isHeading />
-      <SettingItem>
-        <button onClick={addCite} className="mod-cta">
-          Add Citation Format
-        </button>
-      </SettingItem>
-      {citeFormatState.map((f, i) => {
-        return (
-          <CiteFormatSettings
-            key={i}
-            format={f}
-            index={i}
-            updateFormat={updateCite}
-            removeFormat={removeCite}
-          />
-        );
-      })}
 
-      <SettingItem name="Import Here Settings" isHeading />
-      <ExportFormatSettings
-        format={importHereFormatState}
-        index={-1}
-        updateFormat={updateImportHere}
-        removeFormat={() => { }}
-      />
+      <details>
+        <summary style={{ cursor: 'pointer', fontSize: '1.2em', fontWeight: 'bold' }}>
+          Citation Formats
+        </summary>
+        <SettingItem>
+          <button onClick={addCite} className="mod-cta">
+            Add Citation Format
+          </button>
+        </SettingItem>
+        {citeFormatState.map((f, i) => {
+          return (
+            <CiteFormatSettings
+              key={i}
+              format={f}
+              index={i}
+              updateFormat={updateCite}
+              removeFormat={removeCite}
+            />
+          );
+        })}
+      </details>
+      <br />
 
-      <SettingItem name="Import Formats" isHeading />
-      <SettingItem>
-        <button onClick={addExport} className="mod-cta">
-          Add Import Format
-        </button>
-      </SettingItem>
-      {exportFormatState.map((f, i) => {
-        return (
-          <ExportFormatSettings
-            key={exportFormatState.length - i}
-            format={f}
-            index={i}
-            updateFormat={updateExport}
-            removeFormat={removeExport}
+      <details>
+        <summary style={{ cursor: 'pointer', fontSize: '1.2em', fontWeight: 'bold' }}>
+          AI Summary Settings
+        </summary>
+        <SettingItem
+          name="Auto-trigger AI Summary"
+          description="Automatically trigger AI summary when opening a note with anchor and PDF link."
+        >
+          <div
+            onClick={() => updateSetting('autoSummarize', !settings.autoSummarize)}
+            className={`checkbox-container${settings.autoSummarize ? ' is-enabled' : ''}`}
           />
-        );
-      })}
+        </SettingItem>
+        <SettingItem
+          name="API Key"
+          description="OpenAI format API Key"
+        >
+          <input
+            type="text"
+            placeholder="sk-..."
+            value={settings.aiApiKey}
+            onChange={(e) => updateSetting('aiApiKey', (e.target as HTMLInputElement).value)}
+          />
+        </SettingItem>
+        <SettingItem
+          name="API URL"
+          description="Full API URL"
+        >
+          <input
+            type="text"
+            value={settings.aiApiUrl}
+            onChange={(e) => updateSetting('aiApiUrl', (e.target as HTMLInputElement).value)}
+          />
+        </SettingItem>
+        <SettingItem
+          name="Model Name"
+          description="e.g. gpt-4o or qwen-plus"
+        >
+          <input
+            type="text"
+            value={settings.aiModel}
+            onChange={(e) => updateSetting('aiModel', (e.target as HTMLInputElement).value)}
+          />
+        </SettingItem>
+        <SettingItem
+          name="Max Pages"
+          description="Limit PDF reading to first N pages"
+        >
+          <input
+            type="number"
+            value={settings.aiMaxPages}
+            onChange={(e) => updateSetting('aiMaxPages', Number((e.target as HTMLInputElement).value))}
+          />
+        </SettingItem>
+        <SettingItem
+          name="Max Text Length"
+          description="Max characters to extract"
+        >
+          <input
+            type="number"
+            value={settings.aiMaxText}
+            onChange={(e) => updateSetting('aiMaxText', Number((e.target as HTMLInputElement).value))}
+          />
+        </SettingItem>
+        <SettingItem
+          name="Trigger Anchor"
+          description="Text in note that triggers AI summary (must also have PDF link)"
+        >
+          <input
+            type="text"
+            value={settings.aiSummaryAnchor}
+            onChange={(e) => updateSetting('aiSummaryAnchor', (e.target as HTMLInputElement).value)}
+          />
+        </SettingItem>
+        <SettingItem
+          name="AI Prompt"
+          description="Customize the prompt sent to the AI model."
+        >
+          <textarea
+            rows={10}
+            value={settings.aiPrompt}
+            onChange={(e) => updateSetting('aiPrompt', (e.target as HTMLTextAreaElement).value)}
+            style={{ width: '100%', fontFamily: 'monospace' }}
+          />
+        </SettingItem>
+      </details>
+      <br />
+
+      <details>
+        <summary style={{ cursor: 'pointer', fontSize: '1.2em', fontWeight: 'bold' }}>
+          Import Formats & Import Here
+        </summary>
+        <SettingItem name="Import Here Settings" isHeading />
+        <ExportFormatSettings
+          format={importHereFormatState}
+          index={-1}
+          updateFormat={updateImportHere}
+          removeFormat={() => { }}
+        />
+        <SettingItem name="Custom Import Formats" isHeading />
+        <SettingItem>
+          <button onClick={addExport} className="mod-cta">
+            Add Import Format
+          </button>
+        </SettingItem>
+        {exportFormatState.map((f, i) => {
+          return (
+            <ExportFormatSettings
+              key={exportFormatState.length - i}
+              format={f}
+              index={i}
+              updateFormat={updateExport}
+              removeFormat={removeExport}
+            />
+          );
+        })}
+      </details>
 
       <SettingItem
         name="Import Image Settings"

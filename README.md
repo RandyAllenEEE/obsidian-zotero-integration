@@ -4,6 +4,13 @@ Insert and import citations, bibliographies, notes, and PDF annotations from Zot
 
 You can find the documentation for this plugin [here](https://github.com/mgmeyers/obsidian-zotero-integration/blob/main/docs/README.md). The documentation is currently incomplete. Please reach out if you'd like to help.
 
+## New in v3.3.0: AI Summary
+This version introduces an AI-powered PDF summarization feature.
+- **Trigger AI Summary**: Manually trigger summarization of local PDFs linked in your notes via the command palette.
+- **Auto-trigger**: Optionally trigger summarization automatically when opening a note containing the configured anchor.
+- **Customizable Prompt**: Tailor the AI prompt, model (OpenAI-compatible), and character limits in settings.
+- **Foldable Settings**: Reorganized settings panel with collapsible sections for a cleaner interface.
+
 ## Help, how do I install the plugin?
 
 In Obsidian, open Settings, on the left under Options open Community Plugins, on Community Plugins select Browse and search for 'Zotero Integration'

@@ -93,6 +93,14 @@ export interface ZoteroConnectorSettings {
   whichNotesToOpenAfterImport: NotesToOpenAfterImport;
   sanitizeTitles?: boolean;
   importHereFormat?: ExportFormat;
+  aiApiKey?: string;
+  aiApiUrl?: string;
+  aiModel?: string;
+  aiMaxPages?: number;
+  aiMaxText?: number;
+  aiSummaryAnchor?: string;
+  autoSummarize?: boolean;
+  aiPrompt?: string;
 }
 
 export interface CiteKeyExport {
