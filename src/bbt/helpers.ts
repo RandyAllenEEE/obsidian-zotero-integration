@@ -39,6 +39,13 @@ export function sanitizeFilePath(filePath: string) {
   return path.join(dir, `${name}${parsed.ext}`);
 }
 
+export function sanitizeTitle(title: string) {
+  return title
+    .replace(/[\\/:?*"<>|]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 function hexToHSL(str: string) {
   let rStr = '0',
     gStr = '0',

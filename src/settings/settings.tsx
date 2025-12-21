@@ -51,6 +51,23 @@ function SettingsComponent({
 
   const [concat, setConcat] = React.useState(!!settings.shouldConcat);
 
+  const [importHereFormatState, setImportHereFormatState] = React.useState(
+    settings.importHereFormat || {
+      name: 'Import Here',
+      outputPathTemplate: '{{citekey}}.md',
+      imageOutputPathTemplate: '',
+      imageBaseNameTemplate: '',
+    }
+  );
+
+  const updateImportHere = React.useCallback(
+    (index: number, format: ExportFormat) => {
+      updateSetting('importHereFormat', format);
+      setImportHereFormatState(format);
+    },
+    [updateSetting]
+  );
+
   const updateCite = React.useCallback(
     debounce(
       (index: number, format: CitationFormat) => {
@@ -173,6 +190,18 @@ function SettingsComponent({
         />
       </SettingItem>
       <SettingItem
+        name="Global Import Filter"
+        description="Remove illegal characters (/, :, ?, *, <, >, |, \) from Zotero item titles when using them as filenames."
+      >
+        <div
+          onClick={() => {
+            updateSetting('sanitizeTitles', !settings.sanitizeTitles);
+          }}
+          className={`checkbox-container${settings.sanitizeTitles ? ' is-enabled' : ''
+            }`}
+        />
+      </SettingItem>
+      <SettingItem
         name="Open the created or updated note(s) after import"
         description="The created or updated markdown files resulting from the import will be automatically opened."
       >
@@ -183,9 +212,8 @@ function SettingsComponent({
               return !state;
             });
           }}
-          className={`checkbox-container${
-            openNoteAfterImportState ? ' is-enabled' : ''
-          }`}
+          className={`checkbox-container${openNoteAfterImportState ? ' is-enabled' : ''
+            }`}
         />
       </SettingItem>
       <SettingItem
@@ -239,6 +267,14 @@ function SettingsComponent({
           />
         );
       })}
+
+      <SettingItem name="Import Here Settings" isHeading />
+      <ExportFormatSettings
+        format={importHereFormatState}
+        index={-1}
+        updateFormat={updateImportHere}
+        removeFormat={() => { }}
+      />
 
       <SettingItem name="Import Formats" isHeading />
       <SettingItem>

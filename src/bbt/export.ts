@@ -18,6 +18,7 @@ import {
   getLocalURI,
   mkMDDir,
   sanitizeFilePath,
+  sanitizeTitle,
 } from './helpers';
 import {
   getAttachmentsFromCiteKey,
@@ -270,9 +271,13 @@ async function processItem(
   importDate: moment.Moment,
   database: DatabaseWithPort,
   cslStyle?: string,
-  skipRelations?: boolean
+  skipRelations?: boolean,
+  sanitizeTitles?: boolean
 ) {
   const citekey = getCiteKeyFromAny(item);
+  if (sanitizeTitles && item.title) {
+    item.title = sanitizeTitle(item.title);
+  }
   item.importDate = importDate;
   // legacy
   item.exportDate = importDate;
@@ -445,10 +450,10 @@ export async function renderTemplates(
   try {
     header = headerTemplate
       ? await renderTemplate(
-          params.exportFormat.headerTemplatePath,
-          headerTemplate,
-          templateData
-        )
+        params.exportFormat.headerTemplatePath,
+        headerTemplate,
+        templateData
+      )
       : '';
   } catch (e) {
     if (shouldThrow) {
@@ -470,10 +475,10 @@ export async function renderTemplates(
   try {
     annotations = annotationTemplate
       ? await renderTemplate(
-          params.exportFormat.annotationTemplatePath,
-          annotationTemplate,
-          templateData
-        )
+        params.exportFormat.annotationTemplatePath,
+        annotationTemplate,
+        templateData
+      )
       : '';
   } catch (e) {
     if (shouldThrow) {
@@ -495,10 +500,10 @@ export async function renderTemplates(
   try {
     footer = footerTemplate
       ? await renderTemplate(
-          params.exportFormat.footerTemplatePath,
-          footerTemplate,
-          templateData
-        )
+        params.exportFormat.footerTemplatePath,
+        footerTemplate,
+        templateData
+      )
       : '';
   } catch (e) {
     if (shouldThrow) {
@@ -620,7 +625,14 @@ export async function exportToMarkdown(
   const createdOrUpdatedMarkdownFiles: string[] = [];
 
   for (const item of itemData) {
-    await processItem(item, importDate, database, exportFormat.cslStyle);
+    await processItem(
+      item,
+      importDate,
+      database,
+      exportFormat.cslStyle,
+      false,
+      settings.sanitizeTitles
+    );
   }
 
   const vaultRoot = getVaultRoot();
@@ -703,30 +715,30 @@ export async function exportToMarkdown(
 
       const imageRelativePath = exportFormat.imageOutputPathTemplate
         ? normalizePath(
-            sanitizeFilePath(
-              removeStartingSlash(
-                await renderTemplate(
-                  sourcePath,
-                  exportFormat.imageOutputPathTemplate,
-                  pathTemplateData
-                )
+          sanitizeFilePath(
+            removeStartingSlash(
+              await renderTemplate(
+                sourcePath,
+                exportFormat.imageOutputPathTemplate,
+                pathTemplateData
               )
             )
           )
+        )
         : '';
 
       const imageOutputPath = path.resolve(vaultRoot, imageRelativePath);
 
       const imageBaseName = exportFormat.imageBaseNameTemplate
         ? sanitizeFilePath(
-            removeStartingSlash(
-              await renderTemplate(
-                sourcePath,
-                exportFormat.imageBaseNameTemplate,
-                pathTemplateData
-              )
+          removeStartingSlash(
+            await renderTemplate(
+              sourcePath,
+              exportFormat.imageBaseNameTemplate,
+              pathTemplateData
             )
           )
+        )
         : 'image';
 
       const markdownPath = await getMarkdownPath(pathTemplateData);

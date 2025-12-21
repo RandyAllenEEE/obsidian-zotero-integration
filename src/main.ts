@@ -24,6 +24,7 @@ import {
   ExportFormat,
   ZoteroConnectorSettings,
 } from './types';
+import { Notice } from 'obsidian';
 
 const commandPrefix = 'obsidian-zotero-desktop-connector:';
 const citationCommandIDPrefix = 'zdc-';
@@ -39,6 +40,13 @@ const DEFAULT_SETTINGS: ZoteroConnectorSettings = {
   citeSuggestTemplate: '[[{{citekey}}]]',
   openNoteAfterImport: false,
   whichNotesToOpenAfterImport: 'first-imported-note',
+  sanitizeTitles: false,
+  importHereFormat: {
+    name: 'Import Here',
+    outputPathTemplate: '{{citekey}}.md',
+    imageOutputPathTemplate: '',
+    imageBaseNameTemplate: '',
+  },
 };
 
 async function fixPath() {
@@ -118,6 +126,44 @@ export default class ZoteroConnector extends Plugin {
             return [] as string[];
           })
           .then((notes) => this.openNotes(notes));
+      },
+    });
+
+    this.addCommand({
+      id: 'zdc-import-notes-here',
+      name: 'Import Here',
+      callback: () => {
+        const database = {
+          database: this.settings.database,
+          port: this.settings.port,
+        };
+        const activeFile = this.app.workspace.getActiveFile();
+        const importFolder = activeFile ? activeFile.parent.path : '';
+        const format = this.settings.importHereFormat;
+
+        if (!format) {
+          new Notice('Import Here format is not configured.');
+          return;
+        }
+
+        // Clone format and prepend import folder
+        const localFormat = { ...format };
+        // relative to importFolder.
+        if (localFormat.outputPathTemplate) {
+          localFormat.outputPathTemplate = importFolder.length > 0 ? importFolder + '/' + localFormat.outputPathTemplate : localFormat.outputPathTemplate;
+        } else {
+          localFormat.outputPathTemplate = importFolder + '/{{citekey}}.md';
+        }
+
+        if (localFormat.imageOutputPathTemplate) {
+          localFormat.imageOutputPathTemplate = importFolder.length > 0 ? importFolder + '/' + localFormat.imageOutputPathTemplate : localFormat.imageOutputPathTemplate;
+        }
+
+        exportToMarkdown({
+          settings: this.settings,
+          database,
+          exportFormat: localFormat,
+        }).then((notes) => this.openNotes(notes));
       },
     });
 
@@ -251,7 +297,7 @@ export default class ZoteroConnector extends Plugin {
         case 'last-imported-note': {
           pathOfNotesToOpen.push(
             createdOrUpdatedMarkdownFilesPaths[
-              createdOrUpdatedMarkdownFilesPaths.length - 1
+            createdOrUpdatedMarkdownFilesPaths.length - 1
             ]
           );
           break;
