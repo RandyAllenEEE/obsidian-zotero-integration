@@ -5,38 +5,38 @@ import { StylesConfig } from 'react-select';
 
 import { cslList } from './cslList';
 
-export const customSelectStyles: StylesConfig = {
-  input: (provided) => {
+export const customSelectStyles: any = {
+  input: (provided: any) => {
     return {
       ...provided,
       color: 'var(--text-normal)',
     };
   },
-  singleValue: (provided) => {
+  singleValue: (provided: any) => {
     return {
       ...provided,
       color: 'var(--text-normal)',
     };
   },
-  menu: (provided) => {
+  menu: (provided: any) => {
     return {
       ...provided,
       backgroundColor: 'var(--background-modifier-form-field)',
       color: 'var(--text-normal)',
     };
   },
-  option: (provided, { isFocused, isSelected }) => {
+  option: (provided: any, { isFocused, isSelected }: any) => {
     return {
       ...provided,
       backgroundColor: isFocused
         ? `var(--interactive-accent)`
         : isSelected
-        ? `var(--background-modifier-hover)`
-        : undefined,
+          ? `var(--background-modifier-hover)`
+          : undefined,
       color: isFocused ? `var(--text-on-accent)` : 'var(--text-normal)',
     };
   },
-  control: (provided, state) => {
+  control: (provided: any, state: any) => {
     return {
       ...provided,
       backgroundColor: 'var(--background-modifier-form-field)',
@@ -99,23 +99,23 @@ let fileSearchDB = 0;
 
 export const buildLoadFileOptions =
   (search: Fuse<TFile>) =>
-  (
-    inputValue: string,
-    callback: (options: Array<{ value: string; label: string }>) => void
-  ) => {
-    if (inputValue === '') {
-      callback([]);
-    } else {
-      clearTimeout(fileSearchDB);
-      fileSearchDB = activeWindow.setTimeout(() => {
-        callback(
-          search.search(inputValue).map((res) => {
-            return {
-              value: res.item.path,
-              label: res.item.path,
-            };
-          })
-        );
-      }, 150);
-    }
-  };
+    (
+      inputValue: string,
+      callback: (options: Array<{ value: string; label: string }>) => void
+    ) => {
+      if (inputValue === '') {
+        callback([]);
+      } else {
+        clearTimeout(fileSearchDB);
+        fileSearchDB = activeWindow.setTimeout(() => {
+          callback(
+            search.search(inputValue).map((res) => {
+              return {
+                value: res.item.path,
+                label: res.item.path,
+              };
+            })
+          );
+        }, 150);
+      }
+    };

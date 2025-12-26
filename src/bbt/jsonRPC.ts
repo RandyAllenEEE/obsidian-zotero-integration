@@ -510,8 +510,7 @@ export async function getIssueDateFromCiteKey(
         if (!dateParts.length) return null;
 
         const date = moment(
-          `${dateParts[0]}-${dateParts[1] ? padNumber(dateParts[1]) : '01'}-${
-            dateParts[2] ? padNumber(dateParts[2]) : '01'
+          `${dateParts[0]}-${dateParts[1] ? padNumber(dateParts[1]) : '01'}-${dateParts[2] ? padNumber(dateParts[2]) : '01'
           }`,
           'YYYY-MM-DD'
         );
@@ -586,26 +585,26 @@ export async function getCiteKeyExport(
 
     return Array.isArray(entries)
       ? entries
-          .map((e) => {
-            const out: Record<string, any> = {
-              libraryID: Number(groupId),
-            };
+        .map((e) => {
+          const out: Record<string, any> = {
+            libraryID: Number(groupId),
+          };
 
-            if (e['citation-key']) {
-              out.citekey = e['citation-key'];
-            } else {
-              return null;
-            }
+          if (e['citation-key']) {
+            out.citekey = e['citation-key'];
+          } else {
+            return null;
+          }
 
-            if (e['title']) {
-              out.title = e['title'];
-            } else {
-              return null;
-            }
+          if (e['title']) {
+            out.title = e['title'];
+          } else {
+            return null;
+          }
 
-            return out as { libraryID: number; citekey: string; title: string };
-          })
-          .filter((k) => !!k)
+          return out as { libraryID: number; citekey: string; title: string };
+        })
+        .filter((k) => !!k)
       : null;
   } catch (e) {
     ZQueue.end(qid);

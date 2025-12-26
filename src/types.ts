@@ -13,6 +13,7 @@ export interface CitationFormat {
   brackets?: boolean;
   cslStyle?: string;
   template?: string;
+  addZoteroLink?: boolean;
 }
 
 export type Database = 'Zotero' | 'Juris-M' | 'Custom';

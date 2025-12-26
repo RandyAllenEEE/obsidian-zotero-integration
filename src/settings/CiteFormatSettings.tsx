@@ -187,34 +187,52 @@ export function CiteFormatSettings({
       {['formatted-citation', 'formatted-bibliography', 'template'].contains(
         format.format
       ) && (
+          <div className="zt-format__form">
+            <div className="zt-format__label">
+              {format.format === 'template'
+                ? 'Bibliography Style'
+                : 'Citation Style'}
+            </div>
+            <div className="zt-format__input-wrapper">
+              <AsyncSelect
+                noOptionsMessage={NoOptionMessage}
+                placeholder="Search..."
+                cacheOptions
+                defaultValue={defaultStyle}
+                className="zt-multiselect"
+                loadOptions={loadCSLOptions}
+                isClearable
+                onChange={onChangeCSLStyle}
+                styles={customSelectStyles}
+              />
+            </div>
+            <div className="zt-format__input-note">
+              Note, the chosen style must be installed in Zotero. See{' '}
+              <a
+                target="_blank"
+                href="https://www.zotero.org/support/styles"
+                rel="noreferrer"
+              >
+                Zotero: Citation Styles
+              </a>
+            </div>
+          </div>
+        )}
+
+      {format.format === 'formatted-citation' && (
         <div className="zt-format__form">
-          <div className="zt-format__label">
-            {format.format === 'template'
-              ? 'Bibliography Style'
-              : 'Citation Style'}
-          </div>
+          <div className="zt-format__label">Include Zotero Link</div>
           <div className="zt-format__input-wrapper">
-            <AsyncSelect
-              noOptionsMessage={NoOptionMessage}
-              placeholder="Search..."
-              cacheOptions
-              defaultValue={defaultStyle}
-              className="zt-multiselect"
-              loadOptions={loadCSLOptions}
-              isClearable
-              onChange={onChangeCSLStyle}
-              styles={customSelectStyles}
+            <div
+              onClick={() => {
+                updateFormat(index, {
+                  ...format,
+                  addZoteroLink: !format.addZoteroLink,
+                });
+              }}
+              className={`checkbox-container${format.addZoteroLink ? ' is-enabled' : ''
+                }`}
             />
-          </div>
-          <div className="zt-format__input-note">
-            Note, the chosen style must be installed in Zotero. See{' '}
-            <a
-              target="_blank"
-              href="https://www.zotero.org/support/styles"
-              rel="noreferrer"
-            >
-              Zotero: Citation Styles
-            </a>
           </div>
         </div>
       )}
@@ -238,9 +256,8 @@ export function CiteFormatSettings({
           <div className="zt-format__input-wrapper">
             <div
               onClick={onChangeBrackets}
-              className={`checkbox-container${
-                format.brackets ? ' is-enabled' : ''
-              }`}
+              className={`checkbox-container${format.brackets ? ' is-enabled' : ''
+                }`}
             />
           </div>
         </div>

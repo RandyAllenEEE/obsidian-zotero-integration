@@ -4,6 +4,11 @@ Insert and import citations, bibliographies, notes, and PDF annotations from Zot
 
 You can find the documentation for this plugin [here](https://github.com/mgmeyers/obsidian-zotero-integration/blob/main/docs/README.md). The documentation is currently incomplete. Please reach out if you'd like to help.
 
+## New in v3.3.1: Linked Citations
+- **Linked Citations**: Added an option to the "Formatted Citation" output format to wrap citations in a Zotero link.
+    - When enabled, citations like `(Smith 2020)` become links that select the item in Zotero when clicked.
+    - Seamless integration: uses a double-call strategy to ensure correct formatting and linking without extra popups.
+
 ## New in v3.3.0: AI Summary
 This version introduces an AI-powered PDF summarization feature.
 - **Trigger AI Summary**: Manually trigger summarization of local PDFs linked in your notes via the command palette.
