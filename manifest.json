@@ -1,0 +1,10 @@
+{
+    "id": "obsidian-zotero-integration",
+    "name": "Zotero Integration",
+    "version": "3.3.1",
+    "minAppVersion": "0.15.0",
+    "description": "Insert and import citations, bibliographies, notes, and PDF annotations from Zotero into Obsidian.",
+    "author": "Randy Allen",
+    "authorUrl": "https://github.com/RandyAllenEEE",
+    "isDesktopOnly": false
+}

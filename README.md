@@ -16,6 +16,10 @@ This version introduces an AI-powered PDF summarization feature.
 - **Customizable Prompt**: Tailor the AI prompt, model (OpenAI-compatible), and character limits in settings.
 - **Foldable Settings**: Reorganized settings panel with collapsible sections for a cleaner interface.
 
+## New in v3.3.1: Update Library Note
+- **Contextual Update**: Use the "Update Library Note" command while on a Zotero-imported note to refresh its content from Zotero.
+- **Smart Logic**: Automatically detects the `citekey` from frontmatter and updates the file in-place using your "Import Here" settings. No need to select the item in Zotero.
+
 ## Help, how do I install the plugin?
 
 In Obsidian, open Settings, on the left under Options open Community Plugins, on Community Plugins select Browse and search for 'Zotero Integration'

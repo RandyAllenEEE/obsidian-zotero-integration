@@ -17,7 +17,8 @@
     "release": "git commit -m $npm_package_version && git tag $npm_package_version && git push && git push --tags"
   },
   "keywords": [],
-  "author": "",
+  "author": "Randy Allen",
+  "authorUrl": "https://github.com/RandyAllenEEE",
   "license": "MIT",
   "devDependencies": {
     "@babel/core": "7.22.5",

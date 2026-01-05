@@ -18,6 +18,7 @@ import {
   downloadAndExtract,
   internalVersion,
 } from './settings/AssetDownloader';
+import { getLibForCiteKey } from './bbt/jsonRPC';
 import { ZoteroConnectorSettingsTab } from './settings/settings';
 import {
   CitationFormat,
@@ -233,6 +234,65 @@ export default class ZoteroConnector extends Plugin {
       name: 'Data explorer',
       callback: () => {
         this.activateDataExplorer();
+      },
+    });
+
+    this.addCommand({
+      id: 'zdc-update-library-note',
+      name: 'Update Library Note',
+      editorCallback: async (editor, view) => {
+        const file = view.file;
+        if (!file) {
+          new Notice('No active file found');
+          return;
+        }
+
+        const cache = this.app.metadataCache.getFileCache(file);
+        const citekey = cache?.frontmatter?.citekey;
+
+        if (!citekey) {
+          new Notice('No citekey found in frontmatter');
+          return;
+        }
+
+        const database = {
+          database: this.settings.database,
+          port: this.settings.port,
+        };
+
+        const format = this.settings.importHereFormat;
+
+        if (!format) {
+          new Notice('Import Here format is not configured.');
+          return;
+        }
+
+        const localFormat = { ...format };
+        // Clean the path to ensure it is valid
+        localFormat.outputPathTemplate = file.path;
+
+        try {
+          const library = await getLibForCiteKey(citekey, database);
+
+          if (!library) {
+            new Notice(`Could not find library for citekey: ${citekey}`);
+            return;
+          }
+
+          await exportToMarkdown(
+            {
+              settings: this.settings,
+              database,
+              exportFormat: localFormat,
+            },
+            [{ key: citekey, library: library }]
+          );
+
+          new Notice(`Updated ${file.basename}`);
+        } catch (e) {
+          console.error(e);
+          new Notice('Failed to update note: ' + e.message);
+        }
       },
     });
 
