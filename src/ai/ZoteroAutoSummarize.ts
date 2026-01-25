@@ -3,7 +3,7 @@ import { ZoteroConnectorSettings } from '../types';
 
 export const summarizePdf = async (app: App, file: TFile, settings: ZoteroConnectorSettings) => {
     // Basic validation
-    if (!settings.aiApiKey) {
+    if (!settings.aiApiKeyId) {
         new Notice('❌ Zotero AI: API Key not configured.');
         return;
     }
@@ -51,6 +51,18 @@ export const summarizePdf = async (app: App, file: TFile, settings: ZoteroConnec
 
     if (!textContent || textContent.length < 100) {
         new Notice("⚠️ Zotero AI: Could not extract text from PDF.");
+        return;
+    }
+
+    // Retrieve API Key from SecretStorage
+    const secretStorage = (app as any).secretStorage;
+    let apiKey = "";
+    if (secretStorage && settings.aiApiKeyId) {
+        apiKey = secretStorage.getSecret(settings.aiApiKeyId);
+    }
+
+    if (!apiKey) {
+        new Notice("❌ Zotero AI: Failed to retrieve API Key from SecretStorage.");
         return;
     }
 
@@ -120,7 +132,7 @@ export const summarizePdf = async (app: App, file: TFile, settings: ZoteroConnec
             url: settings.aiApiUrl || "https://open.cherryin.net/v1/chat/completions",
             method: "POST",
             headers: {
-                "Authorization": `Bearer ${settings.aiApiKey}`,
+                "Authorization": `Bearer ${apiKey}`,
                 "Content-Type": "application/json"
             },
             body: JSON.stringify({

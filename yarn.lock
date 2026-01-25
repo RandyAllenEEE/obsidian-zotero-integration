@@ -1040,7 +1040,7 @@
 "@codemirror/language@https://github.com/lishid/cm-language":
   version "6.11.2"
   resolved "git+ssh://git@github.com/lishid/cm-language.git"
-  integrity sha512-VOQb6/QFX6m24SN8mjKUsXG6sr/zbczWhOwNGuputJHt7XipduplMrnCqwi7oJpWvq8L6p3MeXjotA8urbs4bg==
+  integrity sha512-Lv4mK5Nnfowkp8EAXB6LlZmZAf+KHWwLGcFxhfrWEjYYtedhPDJtv3ZS2UA3RwpgbQzlvlc8i/5MOdqBvW7hLw==
   dependencies:
     "@codemirror/state" "^6.0.0"
     "@codemirror/view" "^6.23.0"

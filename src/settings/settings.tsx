@@ -1,4 +1,5 @@
 import { App, Notice, PluginSettingTab, debounce } from 'obsidian';
+import * as obsidian from 'obsidian';
 import React from 'react';
 import ReactDOM from 'react-dom';
 import which from 'which';
@@ -16,6 +17,7 @@ import { Icon } from './Icon';
 import { SettingItem } from './SettingItem';
 
 interface SettingsComponentProps {
+  app: App;
   settings: ZoteroConnectorSettings;
   addCiteFormat: (format: CitationFormat) => CitationFormat[];
   updateCiteFormat: (index: number, format: CitationFormat) => CitationFormat[];
@@ -27,6 +29,7 @@ interface SettingsComponentProps {
 }
 
 function SettingsComponent({
+  app,
   settings,
   addCiteFormat,
   updateCiteFormat,
@@ -110,7 +113,7 @@ function SettingsComponent({
     setExportFormatState(
       addExportFormat({
         name: `Import #${exportFormatState.length + 1}`,
-        outputPathTemplate: '{{citekey}}.md',
+        outputPathTemplate: '{{citekey}}/',
         imageOutputPathTemplate: '{{citekey}}/',
         imageBaseNameTemplate: 'image',
       })
@@ -289,13 +292,24 @@ function SettingsComponent({
         </SettingItem>
         <SettingItem
           name="API Key"
-          description="OpenAI format API Key"
+          description="OpenAI format API Key (Stored securely)"
         >
-          <input
-            type="text"
-            placeholder="sk-..."
-            value={settings.aiApiKey}
-            onChange={(e) => updateSetting('aiApiKey', (e.target as HTMLInputElement).value)}
+          <div
+            style={{ display: 'contents' }}
+            ref={(el) => {
+              if (el && !el.hasChildNodes()) {
+                const SecretComponent = (obsidian as any).SecretComponent;
+                if (SecretComponent) {
+                  const sc = new SecretComponent(app, el);
+                  sc.setValue(settings.aiApiKeyId || "");
+                  sc.onChange((id: string) => {
+                    updateSetting('aiApiKeyId', id);
+                  });
+                } else {
+                  el.createSpan({ text: 'SecretStorage API not available. Please update Obsidian.' });
+                }
+              }
+            }}
           />
         </SettingItem>
         <SettingItem
@@ -609,6 +623,7 @@ export class ZoteroConnectorSettingsTab extends PluginSettingTab {
   display() {
     ReactDOM.render(
       <SettingsComponent
+        app={this.app}
         settings={this.plugin.settings}
         addCiteFormat={this.addCiteFormat}
         updateCiteFormat={this.updateCiteFormat}

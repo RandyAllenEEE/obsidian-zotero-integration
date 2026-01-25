@@ -94,7 +94,7 @@ export interface ZoteroConnectorSettings {
   whichNotesToOpenAfterImport: NotesToOpenAfterImport;
   sanitizeTitles?: boolean;
   importHereFormat?: ExportFormat;
-  aiApiKey?: string;
+  aiApiKeyId?: string;
   aiApiUrl?: string;
   aiModel?: string;
   aiMaxPages?: number;
