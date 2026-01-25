@@ -101,6 +101,7 @@ export async function getCAYW(
       // Step 1: Get JSON and Select items (Interactive)
       console.log('Zotero Link: Starting Double Call strategy. Format:', format);
       await ZQueue.wait(qid);
+      win.blur();
       const jsonRes = await request({
         method: 'GET',
         url: `http://127.0.0.1:${getPort(
@@ -205,6 +206,7 @@ export async function getCAYW(
         break;
     }
 
+    win.blur();
     const res = await request({
       method: 'GET',
       url: `http://127.0.0.1:${getPort(
