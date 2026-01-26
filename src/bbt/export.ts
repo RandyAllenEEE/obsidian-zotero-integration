@@ -830,6 +830,16 @@ export async function exportToMarkdown(
       }
 
       createdOrUpdatedMarkdownFiles.push(markdownPath);
+
+      // Forcefully update citekey in frontmatter to ensure "Update Item Note" works
+      if (file || (await app.vault.adapter.exists(markdownPath))) {
+        const targetFile = file || (app.vault.getAbstractFileByPath(markdownPath) as TFile);
+        if (targetFile instanceof TFile) {
+          await app.fileManager.processFrontMatter(targetFile, (frontmatter) => {
+            frontmatter['citekey'] = item.citekey;
+          });
+        }
+      }
     } catch (e) {
       new Notice(
         `Import failed for ${markdownPath}, check developer console for details`,

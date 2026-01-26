@@ -49,7 +49,7 @@ const DEFAULT_SETTINGS: ZoteroConnectorSettings = {
     imageOutputPathTemplate: '',
     imageBaseNameTemplate: '',
   },
-  aiApiKey: '',
+  aiApiKeyId: '',
   aiApiUrl: 'https://open.cherryin.net/v1/chat/completions',
   aiModel: 'qwen/qwen3-omni-30b-a3b-thinking(free)',
   aiMaxPages: 10,
@@ -239,7 +239,7 @@ export default class ZoteroConnector extends Plugin {
 
     this.addCommand({
       id: 'zdc-update-library-note',
-      name: 'Update Library Note',
+      name: 'Update Item Note',
       editorCallback: async (editor, view) => {
         const file = view.file;
         if (!file) {

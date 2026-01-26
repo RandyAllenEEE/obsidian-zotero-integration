@@ -16,6 +16,23 @@ export function getCiteKeyFromAny(item: any): CiteKey | null {
   };
 }
 
+async function requestWithBlur(url: string) {
+  const win = getCurrentWindow();
+  win.blur();
+  try {
+    const res = await request({
+      method: 'GET',
+      url,
+      headers: defaultHeaders,
+    });
+    win.show();
+    return res;
+  } catch (e) {
+    win.show();
+    throw e;
+  }
+}
+
 let cachedIsRunning = false;
 let lastCheck = 0;
 
@@ -101,15 +118,11 @@ export async function getCAYW(
       // Step 1: Get JSON and Select items (Interactive)
       console.log('Zotero Link: Starting Double Call strategy. Format:', format);
       await ZQueue.wait(qid);
-      win.blur();
-      const jsonRes = await request({
-        method: 'GET',
-        url: `http://127.0.0.1:${getPort(
-          database.database,
-          database.port
-        )}/better-bibtex/cayw?format=json&select=true`,
-        headers: defaultHeaders,
-      });
+
+      const jsonRes = await requestWithBlur(`http://127.0.0.1:${getPort(
+        database.database,
+        database.port
+      )}/better-bibtex/cayw?format=json&select=true`);
 
       let citeKey = '';
       try {
@@ -206,15 +219,10 @@ export async function getCAYW(
         break;
     }
 
-    win.blur();
-    const res = await request({
-      method: 'GET',
-      url: `http://127.0.0.1:${getPort(
-        database.database,
-        database.port
-      )}/better-bibtex/cayw?${params.toString()}`,
-      headers: defaultHeaders,
-    });
+    const res = await requestWithBlur(`http://127.0.0.1:${getPort(
+      database.database,
+      database.port
+    )}/better-bibtex/cayw?${params.toString()}`);
 
     win.show();
     modal.close();
@@ -271,14 +279,10 @@ export async function getCAYWJSON(database: DatabaseWithPort) {
   const qid = Symbol();
   try {
     await ZQueue.wait(qid);
-    const res = await request({
-      method: 'GET',
-      url: `http://127.0.0.1:${getPort(
-        database.database,
-        database.port
-      )}/better-bibtex/cayw?format=translate&translator=36a3b0b5-bad0-4a04-b79b-441c7cef77db&exportNotes=false`,
-      headers: defaultHeaders,
-    });
+    const res = await requestWithBlur(`http://127.0.0.1:${getPort(
+      database.database,
+      database.port
+    )}/better-bibtex/cayw?format=translate&translator=36a3b0b5-bad0-4a04-b79b-441c7cef77db&exportNotes=false`);
 
     win.show();
 

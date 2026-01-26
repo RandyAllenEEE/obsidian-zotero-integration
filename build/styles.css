@@ -1,6 +1,6 @@
 /* Settings UI Styles */
 
-.zt-setting-item > .setting-item-control {
+.zt-setting-item>.setting-item-control {
   justify-content: flex-end;
 }
 
@@ -16,8 +16,12 @@
 
 .zt-format__form {
   display: flex;
-  align-items: center;
-  margin-bottom: 12px;
+  flex-wrap: wrap;
+  /* Allow wrapping for notes */
+  align-items: flex-start;
+  /* Align to top for multiline */
+  margin-bottom: 18px;
+  /* Increased spacing */
 }
 
 .zt-format__form.is-deprecated {
@@ -29,12 +33,16 @@
   flex-shrink: 0;
   color: var(--text-muted);
   font-size: 14px;
+  padding-top: 5px;
+  /* Align with input text */
 }
 
 .zt-format__input-wrapper {
   flex-grow: 1;
   display: flex;
   align-items: center;
+  min-width: 300px;
+  /* Prevent crushing on small screens */
 }
 
 .zt-format__input-wrapper input[type="text"],
@@ -61,9 +69,15 @@
 .zt-format__input-note {
   font-size: 12px;
   color: var(--text-faint);
-  margin-top: 4px;
-  margin-left: 150px; /* Match label width */
+  margin-top: 6px;
+  margin-left: 150px;
+  /* Keep indentation */
   line-height: 1.4;
+  width: 100%;
+  /* Force full width on new line */
+  flex-basis: 100%;
+  /* Ensure it breaks to new row */
+  padding-left: 0;
 }
 
 .zt-format__input-note pre {
