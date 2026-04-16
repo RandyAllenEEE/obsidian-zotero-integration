@@ -27,7 +27,7 @@
       },
       "openAfterImport": {
         "label": "导入后打开创建或更新的笔记",
-        "description": "导入产生的已创建或已更新的markdown文件将自动打开。"
+        "description": "导入产生的已创建或已更新的笔记将自动打开。"
       },
       "whichNotesToOpen": {
         "label": "导入后打开哪些笔记",
@@ -103,7 +103,19 @@
       "heading": "导入格式与导入到此处",
       "importHereSettings": "导入到此处设置",
       "customImportFormats": "自定义导入格式",
-      "addButton": "添加导入格式"
+      "addButton": "添加导入格式",
+      "name": "名称",
+      "outputPath": "输出路径",
+      "imageOutputPath": "图像输出路径",
+      "imageBaseName": "图像基础名称",
+      "templateFile": "模板文件",
+      "bibliographyStyle": "参考文献风格",
+      "outputPathDescription": "导出的笔记文件路径。支持模板，例如 {{citekey}}.md。模板可以访问来自Zotero项目及其第一个附件的数据。",
+      "imageOutputPathDescription": "保存图像的文件夹。支持模板，例如 Assets/{{citekey}}/。模板可以访问来自Zotero项目及其第一个附件的数据。",
+      "imageBaseNameDescription": "导出图像的基本文件名。例如，image 将生成 image-1-x123-y456.jpg，其中 1 是页码，x123 和 y456 是页面上矩形注释的 x 和 y 坐标。支持模板。模板可以访问来自Zotero项目及其第一个附件的数据。",
+      "templateFilePlaceholder": "搜索...",
+      "bibliographyStylePlaceholder": "搜索...",
+      "bibliographyStyleDescription": "注意，所选样式必须安装在 Zotero 中。参见 Zotero: 引用样式"
     },
     "image": {
       "heading": "导入图像设置",
@@ -159,5 +171,24 @@
       "downloadError": "下载PDF工具出错。检查控制台获取更多详情。",
       "tesseractNotFound": "在您的系统上找不到tesseract。如果已安装，请手动输入路径。"
     }
+  },
+  "commands": {
+    "insertNotes": "将笔记插入当前文档",
+    "importNotes": "导入笔记",
+    "importNotesHere": "导入到此处",
+    "dataExplorer": "数据浏览器",
+    "updateItemNote": "更新条目笔记",
+    "triggerAiSummary": "触发AI摘要"
+  },
+  "notices": {
+    "importHereNotConfigured": "“导入到此处”格式未配置。",
+    "updateLibraryNoteNotConfigured": "“更新库笔记”格式未配置。",
+    "noActiveFile": "未找到活动文件",
+    "noCitekeyInFrontmatter": "在frontmatter中未找到citekey",
+    "pleaseOpenMarkdownFile": "请打开一个笔记文件以触发AI摘要",
+    "updatingPdfUtility": "正在更新Obsidian Zotero Integration PDF工具...",
+    "couldNotFindLibrary": "找不到citekey为{{citekey}}的库",
+    "updatedNote": "已更新{{filename}}",
+    "failedToUpdateNote": "更新笔记失败：{{error}}"
   }
 }

@@ -103,7 +103,19 @@
       "heading": "Import Formats & Import Here",
       "importHereSettings": "Import Here Settings",
       "customImportFormats": "Custom Import Formats",
-      "addButton": "Add Import Format"
+      "addButton": "Add Import Format",
+      "name": "Name",
+      "outputPath": "Output Path",
+      "imageOutputPath": "Image Output Path",
+      "imageBaseName": "Image Base Name",
+      "templateFile": "Template File",
+      "bibliographyStyle": "Bibliography Style",
+      "outputPathDescription": "The file path of the exported markdown. Supports templating, eg {{citekey}}.md. Templates have access to data from the Zotero item and its first attachment.",
+      "imageOutputPathDescription": "The folder in which images should be saved. Supports templating, eg Assets/{{citekey}}/. Templates have access to data from the Zotero item and its first attachment.",
+      "imageBaseNameDescription": "The base file name of exported images. Eg. image will result in image-1-x123-y456.jpg where 1 is the page number and x123 and y456 are the x and y coordinates of rectangle annotation on the page. Supports templating. Templates have access to data from the Zotero item and its first attachment.",
+      "templateFilePlaceholder": "Search...",
+      "bibliographyStylePlaceholder": "Search...",
+      "bibliographyStyleDescription": "Note, the chosen style must be installed in Zotero. See Zotero: Citation Styles"
     },
     "image": {
       "heading": "Import Image Settings",
@@ -159,5 +171,24 @@
       "downloadError": "Error downloading PDF utility. Check the console for more details.",
       "tesseractNotFound": "Unable to find tesseract on your system. If it is installed, please manually enter a path."
     }
+  },
+  "commands": {
+    "insertNotes": "Insert notes into current document",
+    "importNotes": "Import notes",
+    "importNotesHere": "Import Here",
+    "dataExplorer": "Data explorer",
+    "updateItemNote": "Update Item Note",
+    "triggerAiSummary": "Trigger AI Summary"
+  },
+  "notices": {
+    "importHereNotConfigured": "Import Here format is not configured.",
+    "updateLibraryNoteNotConfigured": "Update Library Note format is not configured.",
+    "noActiveFile": "No active file found",
+    "noCitekeyInFrontmatter": "No citekey found in frontmatter",
+    "pleaseOpenMarkdownFile": "Please open a markdown file to trigger AI Summary",
+    "updatingPdfUtility": "Updating Obsidian Zotero Integration PDF Utility...",
+    "couldNotFindLibrary": "Could not find library for citekey: {{citekey}}",
+    "updatedNote": "Updated {{filename}}",
+    "failedToUpdateNote": "Failed to update note: {{error}}"
   }
 }

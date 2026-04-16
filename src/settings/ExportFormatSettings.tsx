@@ -93,7 +93,7 @@ export function ExportFormatSettings({
   return (
     <div className="zt-format">
       <div className="zt-format__form">
-        <div className="zt-format__label">Name</div>
+        <div className="zt-format__label">{t('settings.import.name')}</div>
         <div className="zt-format__input-wrapper">
           <input
             onChange={onChangeStr}
@@ -110,7 +110,7 @@ export function ExportFormatSettings({
       </div>
 
       <div className="zt-format__form">
-        <div className="zt-format__label">Output Path</div>
+        <div className="zt-format__label">{t('settings.import.outputPath')}</div>
         <div className="zt-format__input-wrapper">
           <input
             onChange={onChangeStr}
@@ -120,14 +120,12 @@ export function ExportFormatSettings({
           />
         </div>
         <div className="zt-format__input-note">
-          The file path of the exported markdown. Supports templating, eg{' '}
-          <pre>My Folder/{'{{citekey}}'}.md</pre>. Templates have access to data
-          from the Zotero item and its first attachment.
+          {t('settings.import.outputPathDescription')}
         </div>
       </div>
 
       <div className="zt-format__form">
-        <div className="zt-format__label">Image Output Path</div>
+        <div className="zt-format__label">{t('settings.import.imageOutputPath')}</div>
         <div className="zt-format__input-wrapper">
           <input
             onChange={onChangeStr}
@@ -137,14 +135,12 @@ export function ExportFormatSettings({
           />
         </div>
         <div className="zt-format__input-note">
-          The folder in which images should be saved. Supports templating, eg{' '}
-          <pre>Assets/{'{{citekey}}'}/</pre>. Templates have access to data from
-          the Zotero item and its first attachment.
+          {t('settings.import.imageOutputPathDescription')}
         </div>
       </div>
 
       <div className="zt-format__form">
-        <div className="zt-format__label">Image Base Name</div>
+        <div className="zt-format__label">{t('settings.import.imageBaseName')}</div>
         <div className="zt-format__input-wrapper">
           <input
             onChange={onChangeStr}
@@ -154,49 +150,23 @@ export function ExportFormatSettings({
           />
         </div>
         <div className="zt-format__input-note">
-          The base file name of exported images. Eg. <pre>image</pre> will
-          result in <pre>image-1-x123-y456.jpg</pre> where <pre>1</pre> is the
-          page number and <pre>x123</pre> and <pre>y456</pre> are the x and y
-          coordinates of rectangle annotation on the page. Supports templating.
-          Templates have access to data from the Zotero item and its first
-          attachment.
+          {t('settings.import.imageBaseNameDescription')}
         </div>
       </div>
 
       <div className="zt-format__form">
-        <div className="zt-format__label">Template File</div>
+        <div className="zt-format__label">{t('settings.import.templateFile')}</div>
         <div className="zt-format__input-wrapper">
           <AsyncSelect
             noOptionsMessage={NoFileOptionMessage}
-            placeholder="Search..."
+            placeholder={t('settings.import.templateFilePlaceholder')}
             cacheOptions
             defaultValue={defaultTemplate}
             className="zt-multiselect"
             loadOptions={loadFileOptions}
-            isClearable
             onChange={onChangeTemplatePath}
             styles={customSelectStyles}
           />
-        </div>
-        <div className="zt-format__input-note">
-          Open the data explorer from the command pallet to see available
-          template data. Templates are written using{' '}
-          <a
-            href="https://mozilla.github.io/nunjucks/templating.html#variables"
-            target="_blank"
-            rel="noreferrer"
-          >
-            Nunjucks
-          </a>
-          .{' '}
-          <a
-            href="https://github.com/mgmeyers/obsidian-zotero-integration/blob/main/docs/Templating.md"
-            target="_blank"
-            rel="noreferrer"
-          >
-            See the templating documentation here
-          </a>
-          .
         </div>
       </div>
 
@@ -300,11 +270,11 @@ export function ExportFormatSettings({
       )}
 
       <div className="zt-format__form">
-        <div className="zt-format__label">Bibliography Style</div>
+        <div className="zt-format__label">{t('settings.import.bibliographyStyle')}</div>
         <div className="zt-format__input-wrapper">
           <AsyncSelect
             noOptionsMessage={NoOptionMessage}
-            placeholder="Search..."
+            placeholder={t('settings.import.bibliographyStylePlaceholder')}
             cacheOptions
             defaultValue={defaultStyle}
             className="zt-multiselect"
@@ -315,14 +285,7 @@ export function ExportFormatSettings({
           />
         </div>
         <div className="zt-format__input-note">
-          Note, the chosen style must be installed in Zotero. See{' '}
-          <a
-            target="_blank"
-            href="https://www.zotero.org/support/styles"
-            rel="noreferrer"
-          >
-            Zotero: Citation Styles
-          </a>
+          {t('settings.import.bibliographyStyleDescription')}
         </div>
       </div>
     </div>

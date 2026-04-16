@@ -1,8 +1,8 @@
 import Fuse from 'fuse.js';
-import { EditableFileView, Events, Plugin, TFile } from 'obsidian';
+import { EditableFileView, Events, Notice, Plugin, TFile } from 'obsidian';
 import { shellPath } from 'shell-path';
 
-import './i18n/config'; // Initialize i18n
+import i18n, { detectAndSetLanguage } from './i18n/config'; // Initialize i18n and import detection function
 import { DataExplorerView, viewType } from './DataExplorerView';
 import { LoadingModal } from './bbt/LoadingModal';
 import { getCAYW } from './bbt/cayw';
@@ -27,7 +27,11 @@ import {
   ExportFormat,
   ZoteroConnectorSettings,
 } from './types';
-import { Notice } from 'obsidian';
+
+// Helper function to get translated strings
+const t = (key: string): string => {
+  return i18n.t(key);
+};
 
 const commandPrefix = 'obsidian-zotero-desktop-connector:';
 const citationCommandIDPrefix = 'zdc-';
@@ -142,6 +146,9 @@ export default class ZoteroConnector extends Plugin {
     await this.loadSettings();
     this.emitter = new Events();
 
+    // Detect and set language based on Obsidian settings
+    detectAndSetLanguage(this.app);
+
     this.updatePDFUtility();
     this.addSettingTab(new ZoteroConnectorSettingsTab(this.app, this));
     this.registerView(viewType, (leaf) => new DataExplorerView(this, leaf));
@@ -156,7 +163,7 @@ export default class ZoteroConnector extends Plugin {
 
     this.addCommand({
       id: 'zdc-insert-notes',
-      name: 'Insert notes into current document',
+      name: t('commands.insertNotes'),
       editorCallback: (editor) => {
         const database = {
           database: this.settings.database,
@@ -175,7 +182,7 @@ export default class ZoteroConnector extends Plugin {
 
     this.addCommand({
       id: 'zdc-import-notes',
-      name: 'Import notes',
+      name: t('commands.importNotes'),
       callback: () => {
         const database = {
           database: this.settings.database,
@@ -194,7 +201,7 @@ export default class ZoteroConnector extends Plugin {
 
     this.addCommand({
       id: 'zdc-import-notes-here',
-      name: 'Import Here',
+      name: t('commands.importNotesHere'),
       callback: () => {
         const database = {
           database: this.settings.database,
@@ -205,7 +212,7 @@ export default class ZoteroConnector extends Plugin {
         const format = this.settings.importHereFormat;
 
         if (!format) {
-          new Notice('Import Here format is not configured.');
+          new Notice(t('notices.importHereNotConfigured'));
           return;
         }
 
@@ -232,7 +239,7 @@ export default class ZoteroConnector extends Plugin {
 
     this.addCommand({
       id: 'show-zotero-debug-view',
-      name: 'Data explorer',
+      name: t('commands.dataExplorer'),
       callback: () => {
         this.activateDataExplorer();
       },
@@ -240,19 +247,18 @@ export default class ZoteroConnector extends Plugin {
 
     this.addCommand({
       id: 'zdc-update-library-note',
-      name: 'Update Item Note',
+      name: t('commands.updateItemNote'),
       editorCallback: async (editor, view) => {
         const file = view.file;
         if (!file) {
-          new Notice('No active file found');
+          new Notice(t('notices.noActiveFile'));
           return;
         }
 
-        const cache = this.app.metadataCache.getFileCache(file);
-        const citekey = cache?.frontmatter?.citekey;
-
+        // Use frontmatter directly if available, otherwise fallback to cache
+        const citekey = (file.frontmatter || {}).citekey;
         if (!citekey) {
-          new Notice('No citekey found in frontmatter');
+          new Notice(t('notices.noCitekeyInFrontmatter'));
           return;
         }
 
@@ -261,10 +267,10 @@ export default class ZoteroConnector extends Plugin {
           port: this.settings.port,
         };
 
-        const format = this.settings.importHereFormat;
+        const format = this.settings.updateLibraryNoteFormat;
 
         if (!format) {
-          new Notice('Import Here format is not configured.');
+          new Notice(t('notices.updateLibraryNoteNotConfigured'));
           return;
         }
 
@@ -276,7 +282,7 @@ export default class ZoteroConnector extends Plugin {
           const library = await getLibForCiteKey(citekey, database);
 
           if (!library) {
-            new Notice(`Could not find library for citekey: ${citekey}`);
+            new Notice(t('notices.couldNotFindLibrary').replace('{{citekey}}', citekey));
             return;
           }
 
@@ -289,10 +295,10 @@ export default class ZoteroConnector extends Plugin {
             [{ key: citekey, library: library }]
           );
 
-          new Notice(`Updated ${file.basename}`);
+          new Notice(t('notices.updatedNote').replace('{{filename}}', file.basename));
         } catch (e) {
           console.error(e);
-          new Notice('Failed to update note: ' + e.message);
+          new Notice(t('notices.failedToUpdateNote').replace('{{error}}', e.message));
         }
       },
     });
@@ -307,13 +313,13 @@ export default class ZoteroConnector extends Plugin {
 
     this.addCommand({
       id: 'zdc-trigger-ai-summary',
-      name: 'Trigger AI Summary',
+      name: t('commands.triggerAiSummary'),
       callback: () => {
         const activeFile = this.app.workspace.getActiveFile();
         if (activeFile && activeFile instanceof TFile && activeFile.extension === 'md') {
           summarizePdf(this.app, activeFile, this.settings);
         } else {
-          new Notice("Please open a markdown file to summarize.");
+          new Notice(t('notices.pleaseOpenMarkdownFile'));
         }
       },
     });
@@ -511,7 +517,7 @@ export default class ZoteroConnector extends Plugin {
     ) {
       const modal = new LoadingModal(
         app,
-        'Updating Obsidian Zotero Integration PDF Utility...'
+        t('notices.updatingPdfUtility')
       );
       modal.open();
 
