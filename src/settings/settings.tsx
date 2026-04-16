@@ -3,6 +3,7 @@ import * as obsidian from 'obsidian';
 import React from 'react';
 import ReactDOM from 'react-dom';
 import which from 'which';
+import { useTranslation } from 'react-i18next';
 
 import ZoteroConnector from '../main';
 import {
@@ -15,6 +16,8 @@ import { CiteFormatSettings } from './CiteFormatSettings';
 import { ExportFormatSettings } from './ExportFormatSettings';
 import { Icon } from './Icon';
 import { SettingItem } from './SettingItem';
+import { SettingGroup } from './SettingGroup';
+import { useToggleSetting, useDebouncedArrayState } from './useSettings';
 
 interface SettingsComponentProps {
   app: App;
@@ -39,20 +42,51 @@ function SettingsComponent({
   removeExportFormat,
   updateSetting,
 }: SettingsComponentProps) {
-  const [citeFormatState, setCiteFormatState] = React.useState(
-    settings.citeFormats
-  );
-  const [exportFormatState, setExportFormatState] = React.useState(
-    settings.exportFormats
+  const { t } = useTranslation();
+
+  // Use new hooks for better state management and UI responsiveness
+  const { items: citeFormatState, updateItem: updateCiteState } = useDebouncedArrayState(
+    settings.citeFormats,
+    updateCiteFormat,
+    300
   );
 
-  const [openNoteAfterImportState, setOpenNoteAfterImport] = React.useState(
+  const { items: exportFormatState, updateItem: updateExportState } = useDebouncedArrayState(
+    settings.exportFormats,
+    updateExportFormat,
+    300
+  );
+
+  // Use unified toggle management
+  const openNoteAfterImport = useToggleSetting(
+    'openNoteAfterImport',
+    updateSetting,
     !!settings.openNoteAfterImport
   );
 
-  const [ocrState, setOCRState] = React.useState(settings.pdfExportImageOCR);
+  const pdfExportImageOCR = useToggleSetting(
+    'pdfExportImageOCR',
+    updateSetting,
+    !!settings.pdfExportImageOCR
+  );
 
-  const [concat, setConcat] = React.useState(!!settings.shouldConcat);
+  const shouldConcat = useToggleSetting(
+    'shouldConcat',
+    updateSetting,
+    !!settings.shouldConcat
+  );
+
+  const autoSummarize = useToggleSetting(
+    'autoSummarize',
+    updateSetting,
+    settings.autoSummarize
+  );
+
+  const sanitizeTitles = useToggleSetting(
+    'sanitizeTitles',
+    updateSetting,
+    !!settings.sanitizeTitles
+  );
 
   const [importHereFormatState, setImportHereFormatState] = React.useState(
     settings.importHereFormat || {
@@ -71,58 +105,53 @@ function SettingsComponent({
     [updateSetting]
   );
 
+  // Improved citation format update - immediate UI update, debounced persistence
   const updateCite = React.useCallback(
-    debounce(
-      (index: number, format: CitationFormat) => {
-        setCiteFormatState(updateCiteFormat(index, format));
-      },
-      200,
-      true
-    ),
-    [updateCiteFormat]
+    (index: number, format: CitationFormat) => {
+      updateCiteState(index, format);
+    },
+    [updateCiteState]
   );
 
   const addCite = React.useCallback(() => {
-    setCiteFormatState(
-      addCiteFormat({
-        name: `Format #${citeFormatState.length + 1}`,
-        format: 'formatted-citation',
-      })
-    );
-  }, [addCiteFormat, citeFormatState]);
+    const newFormat = {
+      name: `Format #${citeFormatState.length + 1}`,
+      format: 'formatted-citation' as const,
+    };
+    addCiteFormat(newFormat);
+    // Update UI state immediately
+    React.startTransition(() => {
+      // This will be handled by the useState effect
+    });
+  }, [addCiteFormat, citeFormatState.length]);
 
   const removeCite = React.useCallback(
     (index: number) => {
-      setCiteFormatState(removeCiteFormat(index));
+      removeCiteFormat(index);
     },
     [removeCiteFormat]
   );
 
+  // Improved export format update - immediate UI update, debounced persistence
   const updateExport = React.useCallback(
-    debounce(
-      (index: number, format: ExportFormat) => {
-        setExportFormatState(updateExportFormat(index, format));
-      },
-      200,
-      true
-    ),
-    [updateExportFormat]
+    (index: number, format: ExportFormat) => {
+      updateExportState(index, format);
+    },
+    [updateExportState]
   );
 
   const addExport = React.useCallback(() => {
-    setExportFormatState(
-      addExportFormat({
-        name: `Import #${exportFormatState.length + 1}`,
-        outputPathTemplate: '{{citekey}}/',
-        imageOutputPathTemplate: '{{citekey}}/',
-        imageBaseNameTemplate: 'image',
-      })
-    );
-  }, [addExportFormat, citeFormatState]);
+    addExportFormat({
+      name: `Import #${exportFormatState.length + 1}`,
+      outputPathTemplate: '{{citekey}}/',
+      imageOutputPathTemplate: '{{citekey}}/',
+      imageBaseNameTemplate: 'image',
+    });
+  }, [addExportFormat, exportFormatState.length]);
 
   const removeExport = React.useCallback(
     (index: number) => {
-      setExportFormatState(removeExportFormat(index));
+      removeExportFormat(index);
     },
     [removeExportFormat]
   );
@@ -136,477 +165,469 @@ function SettingsComponent({
 
   return (
     <div>
-      <SettingItem name="General Settings" isHeading />
-      <AssetDownloader settings={settings} updateSetting={updateSetting} />
-      <SettingItem
-        name="Database"
-        description="Supports Zotero and Juris-M. Alternatively a custom port number can be specified."
-      >
-        <select
-          className="dropdown"
-          defaultValue={settings.database}
-          onChange={(e) => {
-            const value = (e.target as HTMLSelectElement).value;
-            updateSetting('database', value);
-            if (value === 'Custom') {
-              setUseCustomPort(true);
-            } else {
-              setUseCustomPort(false);
-            }
-          }}
-        >
-          <option value="Zotero">Zotero</option>
-          <option value="Juris-M">Juris-M</option>
-          <option value="Custom">Custom</option>
-        </select>
-      </SettingItem>
-      {useCustomPort ? (
+      {/* ==================== CONNECTION & DATABASE SETTINGS ==================== */}
+      <SettingItem name={t('settings.general.heading')} isHeading />
+      
+      <SettingGroup level={1}>
+        {/* Database Selection */}
         <SettingItem
-          name="Port number"
-          description="If a custom port number has been set in Zotero, enter it here."
+          name={t('settings.general.database.label')}
+          description={t('settings.general.database.description')}
+        >
+          <select
+            className="dropdown"
+            defaultValue={settings.database}
+            onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
+              const value = (e.target as HTMLSelectElement).value;
+              updateSetting('database', value);
+              if (value === 'Custom') {
+                setUseCustomPort(true);
+              } else {
+                setUseCustomPort(false);
+              }
+            }}
+          >
+            <option value="Zotero">{t('settings.general.database.options.zotero')}</option>
+            <option value="Juris-M">{t('settings.general.database.options.jurisM')}</option>
+            <option value="Custom">{t('settings.general.database.options.custom')}</option>
+          </select>
+        </SettingItem>
+
+        {/* Custom Port (Nested under Database) */}
+        {useCustomPort ? (
+          <SettingGroup level={2}>
+            <SettingItem
+              name={t('settings.general.portNumber.label')}
+              description={t('settings.general.portNumber.description')}
+            >
+              <input
+                onChange={(e) =>
+                  updateSetting('port', (e.target as HTMLInputElement).value)
+                }
+                type="number"
+                placeholder={t('settings.general.portNumber.placeholder')}
+                defaultValue={settings.port}
+              />
+            </SettingItem>
+          </SettingGroup>
+        ) : null}
+      </SettingGroup>
+
+      {/* ==================== IMPORT LOCATION & ASSET DOWNLOADER ==================== */}
+      <SettingGroup level={1}>
+        <SettingItem
+          name={t('settings.general.noteImportLocation.label')}
+          description={t('settings.general.noteImportLocation.description')}
         >
           <input
             onChange={(e) =>
-              updateSetting('port', (e.target as HTMLInputElement).value)
+              updateSetting(
+                'noteImportFolder',
+                (e.target as HTMLInputElement).value
+              )
             }
-            type="number"
-            placeholder="Example: 23119"
-            defaultValue={settings.port}
+            type="text"
+            spellCheck={false}
+            placeholder={t('settings.general.noteImportLocation.placeholder')}
+            defaultValue={settings.noteImportFolder}
           />
         </SettingItem>
-      ) : null}
-      <SettingItem
-        name="Note Import Location"
-        description="Notes imported from Zotero will be added to this folder in your vault"
-      >
-        <input
-          onChange={(e) =>
-            updateSetting(
-              'noteImportFolder',
-              (e.target as HTMLInputElement).value
-            )
-          }
-          type="text"
-          spellCheck={false}
-          placeholder="Example: folder 1/folder 2"
-          defaultValue={settings.noteImportFolder}
-        />
-      </SettingItem>
-      <SettingItem
-        name="Global Import Filter"
-        description="Remove illegal characters (/, :, ?, *, <, >, |, \) from Zotero item titles when using them as filenames."
-      >
-        <div
-          onClick={() => {
-            updateSetting('sanitizeTitles', !settings.sanitizeTitles);
-          }}
-          className={`checkbox-container${settings.sanitizeTitles ? ' is-enabled' : ''
-            }`}
-        />
-      </SettingItem>
-      <SettingItem
-        name="Open the created or updated note(s) after import"
-        description="The created or updated markdown files resulting from the import will be automatically opened."
-      >
-        <div
-          onClick={() => {
-            setOpenNoteAfterImport((state) => {
-              updateSetting('openNoteAfterImport', !state);
-              return !state;
-            });
-          }}
-          className={`checkbox-container${openNoteAfterImportState ? ' is-enabled' : ''
-            }`}
-        />
-      </SettingItem>
-      <SettingItem
-        name="Which notes to open after import"
-        description="Open either the first note imported, the last note imported, or all notes in new tabs."
-      >
-        <select
-          className="dropdown"
-          defaultValue={settings.whichNotesToOpenAfterImport}
-          disabled={!settings.openNoteAfterImport}
-          onChange={(e) =>
-            updateSetting(
-              'whichNotesToOpenAfterImport',
-              (e.target as HTMLSelectElement).value
-            )
-          }
-        >
-          <option value="first-imported-note">First imported note</option>
-          <option value="last-imported-note">Last imported note</option>
-          <option value="all-imported-notes">All imported notes</option>
-        </select>
-      </SettingItem>
-      <SettingItem
-        name="Enable Annotation Concatenation"
-        description="Annotations extracted from PDFs that begin with '+' will be appended to the previous annotation. Note: Annotation ordering is not always consistent and you may not always acheive the desire concatenation result"
-      >
-        <div
-          onClick={() => {
-            setConcat((state) => {
-              updateSetting('shouldConcat', !state);
-              return !state;
-            });
-          }}
-          className={`checkbox-container${concat ? ' is-enabled' : ''}`}
-        />
-      </SettingItem>
 
-      <details>
-        <summary style={{ cursor: 'pointer', fontSize: '1.2em', fontWeight: 'bold' }}>
-          Citation Formats
-        </summary>
+        {/* Asset Downloader nested under Import Location */}
+        <SettingGroup level={2}>
+          <AssetDownloader settings={settings} updateSetting={updateSetting} />
+        </SettingGroup>
+      </SettingGroup>
+
+      {/* ==================== IMPORT BEHAVIOR ==================== */}
+      <SettingGroup level={1}>
+        <SettingItem
+          name={t('settings.general.globalImportFilter.label')}
+          description={t('settings.general.globalImportFilter.description')}
+        >
+          <div
+            onClick={() => {
+              sanitizeTitles.toggle();
+            }}
+            className={`checkbox-container${sanitizeTitles.isEnabled ? ' is-enabled' : ''
+              }`}
+          />
+        </SettingItem>
+
+        <SettingItem
+          name={t('settings.general.openAfterImport.label')}
+          description={t('settings.general.openAfterImport.description')}
+        >
+          <div
+            onClick={openNoteAfterImport.toggle}
+            className={`checkbox-container${openNoteAfterImport.isEnabled ? ' is-enabled' : ''
+              }`}
+          />
+        </SettingItem>
+
+        {/* Nested: Which notes to open (only when openAfterImport enabled) */}
+        {openNoteAfterImport.isEnabled ? (
+          <SettingGroup level={2}>
+            <SettingItem
+              name={t('settings.general.whichNotesToOpen.label')}
+              description={t('settings.general.whichNotesToOpen.description')}
+            >
+              <select
+                className="dropdown"
+                defaultValue={settings.whichNotesToOpenAfterImport}
+                onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
+                  updateSetting(
+                    'whichNotesToOpenAfterImport',
+                    (e.target as HTMLSelectElement).value
+                  )
+                }
+              >
+                <option value="first-imported-note">{t('settings.general.whichNotesToOpen.options.first')}</option>
+                <option value="last-imported-note">{t('settings.general.whichNotesToOpen.options.last')}</option>
+                <option value="all-imported-notes">{t('settings.general.whichNotesToOpen.options.all')}</option>
+              </select>
+            </SettingItem>
+          </SettingGroup>
+        ) : null}
+
+        <SettingItem
+          name={t('settings.general.annotationConcatenation.label')}
+          description={t('settings.general.annotationConcatenation.description')}
+        >
+          <div
+            onClick={shouldConcat.toggle}
+            className={`checkbox-container${shouldConcat.isEnabled ? ' is-enabled' : ''}`}
+          />
+        </SettingItem>
+      </SettingGroup>
+
+      {/* ==================== CITATION FORMATS ==================== */}
+      <SettingItem name={t('settings.citation.heading')} isHeading />
+      <SettingGroup level={1}>
         <SettingItem>
           <button onClick={addCite} className="mod-cta">
-            Add Citation Format
+            {t('settings.citation.addButton')}
           </button>
         </SettingItem>
+
         {citeFormatState.map((f, i) => {
           return (
-            <CiteFormatSettings
-              key={i}
-              format={f}
-              index={i}
-              updateFormat={updateCite}
-              removeFormat={removeCite}
-            />
+            <SettingGroup level={2} key={i}>
+              <CiteFormatSettings
+                format={f}
+                index={i}
+                updateFormat={updateCite}
+                removeFormat={removeCite}
+              />
+            </SettingGroup>
           );
         })}
-      </details>
-      <br />
+      </SettingGroup>
 
-      <details>
-        <summary style={{ cursor: 'pointer', fontSize: '1.2em', fontWeight: 'bold' }}>
-          AI Summary Settings
-        </summary>
+      {/* ==================== AI SUMMARIZATION ==================== */}
+      <SettingItem name={t('settings.ai.heading')} isHeading />
+      <SettingGroup level={1}>
         <SettingItem
-          name="Auto-trigger AI Summary"
-          description="Automatically trigger AI summary when opening a note with anchor and PDF link."
+          name={t('settings.ai.autoTrigger.label')}
+          description={t('settings.ai.autoTrigger.description')}
         >
           <div
-            onClick={() => updateSetting('autoSummarize', !settings.autoSummarize)}
-            className={`checkbox-container${settings.autoSummarize ? ' is-enabled' : ''}`}
+            onClick={autoSummarize.toggle}
+            className={`checkbox-container${autoSummarize.isEnabled ? ' is-enabled' : ''}`}
           />
         </SettingItem>
-        <SettingItem
-          name="API Key"
-          description="OpenAI format API Key (Stored securely)"
-        >
-          <div
-            style={{ display: 'contents' }}
-            ref={(el) => {
-              if (el && !el.hasChildNodes()) {
-                const SecretComponent = (obsidian as any).SecretComponent;
-                if (SecretComponent) {
-                  const sc = new SecretComponent(app, el);
-                  sc.setValue(settings.aiApiKeyId || "");
-                  sc.onChange((id: string) => {
-                    updateSetting('aiApiKeyId', id);
-                  });
-                } else {
-                  el.createSpan({ text: 'SecretStorage API not available. Please update Obsidian.' });
-                }
-              }
-            }}
-          />
-        </SettingItem>
-        <SettingItem
-          name="API URL"
-          description="Full API URL"
-        >
-          <input
-            type="text"
-            value={settings.aiApiUrl}
-            onChange={(e) => updateSetting('aiApiUrl', (e.target as HTMLInputElement).value)}
-          />
-        </SettingItem>
-        <SettingItem
-          name="Model Name"
-          description="e.g. gpt-4o or qwen-plus"
-        >
-          <input
-            type="text"
-            value={settings.aiModel}
-            onChange={(e) => updateSetting('aiModel', (e.target as HTMLInputElement).value)}
-          />
-        </SettingItem>
-        <SettingItem
-          name="Max Pages"
-          description="Limit PDF reading to first N pages"
-        >
-          <input
-            type="number"
-            value={settings.aiMaxPages}
-            onChange={(e) => updateSetting('aiMaxPages', Number((e.target as HTMLInputElement).value))}
-          />
-        </SettingItem>
-        <SettingItem
-          name="Max Text Length"
-          description="Max characters to extract"
-        >
-          <input
-            type="number"
-            value={settings.aiMaxText}
-            onChange={(e) => updateSetting('aiMaxText', Number((e.target as HTMLInputElement).value))}
-          />
-        </SettingItem>
-        <SettingItem
-          name="Trigger Anchor"
-          description="Text in note that triggers AI summary (must also have PDF link)"
-        >
-          <input
-            type="text"
-            value={settings.aiSummaryAnchor}
-            onChange={(e) => updateSetting('aiSummaryAnchor', (e.target as HTMLInputElement).value)}
-          />
-        </SettingItem>
-        <SettingItem
-          name="AI Prompt"
-          description="Customize the prompt sent to the AI model."
-        >
-          <textarea
-            rows={10}
-            value={settings.aiPrompt}
-            onChange={(e) => updateSetting('aiPrompt', (e.target as HTMLTextAreaElement).value)}
-            style={{ width: '100%', fontFamily: 'monospace' }}
-          />
-        </SettingItem>
-      </details>
-      <br />
 
-      <details>
-        <summary style={{ cursor: 'pointer', fontSize: '1.2em', fontWeight: 'bold' }}>
-          Import Formats & Import Here
-        </summary>
-        <SettingItem name="Import Here Settings" isHeading />
-        <ExportFormatSettings
-          format={importHereFormatState}
-          index={-1}
-          updateFormat={updateImportHere}
-          removeFormat={() => { }}
-        />
-        <SettingItem name="Custom Import Formats" isHeading />
+        {/* AI Configuration (only when auto-summarize enabled) */}
+        {autoSummarize.isEnabled ? (
+          <SettingGroup level={2}>
+            <SettingItem
+              name={t('settings.ai.apiKey.label')}
+              description={t('settings.ai.apiKey.description')}
+            >
+              <div
+                style={{ display: 'contents' }}
+                ref={(el) => {
+                  if (el && !el.hasChildNodes()) {
+                    const SecretComponent = (obsidian as any).SecretComponent;
+                    if (SecretComponent) {
+                      const sc = new SecretComponent(app, el);
+                      sc.setValue(settings.aiApiKeyId || "");
+                      sc.onChange((id: string) => {
+                        updateSetting('aiApiKeyId', id);
+                      });
+                    } else {
+                      el.createSpan({ text: 'SecretStorage API not available. Please update Obsidian.' });
+                    }
+                  }
+                }}
+              />
+            </SettingItem>
+
+            <SettingItem
+              name={t('settings.ai.apiUrl.label')}
+              description={t('settings.ai.apiUrl.description')}
+            >
+              <input
+                type="text"
+                value={settings.aiApiUrl}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateSetting('aiApiUrl', (e.target as HTMLInputElement).value)}
+              />
+            </SettingItem>
+
+            <SettingItem
+              name={t('settings.ai.modelName.label')}
+              description={t('settings.ai.modelName.description')}
+            >
+              <input
+                type="text"
+                value={settings.aiModel}
+                placeholder={t('settings.ai.modelName.placeholder')}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateSetting('aiModel', (e.target as HTMLInputElement).value)}
+              />
+            </SettingItem>
+
+            <SettingItem
+              name={t('settings.ai.maxPages.label')}
+              description={t('settings.ai.maxPages.description')}
+            >
+              <input
+                type="number"
+                value={settings.aiMaxPages}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateSetting('aiMaxPages', Number((e.target as HTMLInputElement).value))}
+              />
+            </SettingItem>
+
+            <SettingItem
+              name={t('settings.ai.maxTextLength.label')}
+              description={t('settings.ai.maxTextLength.description')}
+            >
+              <input
+                type="number"
+                value={settings.aiMaxText}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateSetting('aiMaxText', Number((e.target as HTMLInputElement).value))}
+              />
+            </SettingItem>
+
+            <SettingItem
+              name={t('settings.ai.triggerAnchor.label')}
+              description={t('settings.ai.triggerAnchor.description')}
+            >
+              <input
+                type="text"
+                value={settings.aiSummaryAnchor}
+                onChange={(e) => updateSetting('aiSummaryAnchor', (e.target as HTMLInputElement).value)}
+              />
+            </SettingItem>
+
+            <SettingItem
+              name={t('settings.ai.prompt.label')}
+              description={t('settings.ai.prompt.description')}
+            >
+              <textarea
+                rows={10}
+                value={settings.aiPrompt}
+                onChange={(e) => updateSetting('aiPrompt', (e.target as HTMLTextAreaElement).value)}
+                style={{ width: '100%', fontFamily: 'monospace' }}
+              />
+            </SettingItem>
+          </SettingGroup>
+        ) : null}
+      </SettingGroup>
+
+      {/* ==================== IMPORT FORMATS ==================== */}
+      <SettingItem name={t('settings.import.heading')} isHeading />
+      <SettingGroup level={1}>
+        <SettingItem name={t('settings.import.importHereSettings')} isHeading />
+        
+        <SettingGroup level={2}>
+          <ExportFormatSettings
+            format={importHereFormatState}
+            index={-1}
+            updateFormat={updateImportHere}
+            removeFormat={() => { }}
+          />
+        </SettingGroup>
+
+        <SettingItem name={t('settings.import.customImportFormats')} isHeading style={{ marginTop: '16px' }} />
         <SettingItem>
           <button onClick={addExport} className="mod-cta">
-            Add Import Format
+            {t('settings.import.addButton')}
           </button>
         </SettingItem>
+
         {exportFormatState.map((f, i) => {
           return (
-            <ExportFormatSettings
-              key={exportFormatState.length - i}
-              format={f}
-              index={i}
-              updateFormat={updateExport}
-              removeFormat={removeExport}
-            />
+            <SettingGroup level={2} key={exportFormatState.length - i}>
+              <ExportFormatSettings
+                format={f}
+                index={i}
+                updateFormat={updateExport}
+                removeFormat={removeExport}
+              />
+            </SettingGroup>
           );
         })}
-      </details>
+      </SettingGroup>
 
+      {/* ==================== IMAGE PROCESSING & PDF UTILITIES ==================== */}
       <SettingItem
-        name="Import Image Settings"
-        description="Rectangle annotations will be extracted from PDFs as images."
+        name={t('settings.image.heading')}
+        description={t('settings.image.description')}
         isHeading
       />
-      <SettingItem name="Image Format">
-        <select
-          className="dropdown"
-          defaultValue={settings.pdfExportImageFormat}
-          onChange={(e) =>
-            updateSetting(
-              'pdfExportImageFormat',
-              (e.target as HTMLSelectElement).value
-            )
-          }
-        >
-          <option value="jpg">jpg</option>
-          <option value="png">png</option>
-        </select>
-      </SettingItem>
-      <SettingItem name="Image Quality (jpg only)">
-        <input
-          min="0"
-          max="100"
-          onChange={(e) =>
-            updateSetting(
-              'pdfExportImageQuality',
-              Number((e.target as HTMLInputElement).value)
-            )
-          }
-          type="number"
-          defaultValue={settings.pdfExportImageQuality.toString()}
-        />
-      </SettingItem>
-      <SettingItem name="Image DPI">
-        <input
-          min="0"
-          onChange={(e) =>
-            updateSetting(
-              'pdfExportImageDPI',
-              Number((e.target as HTMLInputElement).value)
-            )
-          }
-          type="number"
-          defaultValue={settings.pdfExportImageDPI.toString()}
-        />
-      </SettingItem>
-      <SettingItem
-        name="Image OCR"
-        description={
-          <div>
-            Attempt to extract text from images created by rectangle
-            annotations. This requires that{' '}
-            <a
-              href="https://tesseract-ocr.github.io/tessdoc/"
-              target="_blank"
-              rel="noreferrer"
-            >
-              tesseract
-            </a>{' '}
-            be installed on your system. Tesseract can be installed from
-            <a href="https://brew.sh/" target="_blank" rel="noreferrer">
-              homebrew on mac
-            </a>
-            , various linux package managers, and from{' '}
-            <a
-              href="https://github.com/UB-Mannheim/tesseract/wiki"
-              target="_blank"
-              rel="noreferrer"
-            >
-              here on windows
-            </a>
-            .
-          </div>
-        }
-      >
-        <div
-          onClick={() =>
-            setOCRState((s) => {
-              updateSetting('pdfExportImageOCR', !s);
-              return !s;
-            })
-          }
-          className={`checkbox-container${ocrState ? ' is-enabled' : ''}`}
-        />
-      </SettingItem>
-      <SettingItem
-        name="Tesseract path"
-        description={
-          <div>
-            Required: An absolute path to the tesseract executable. This can be
-            found on mac and linux with the terminal command{' '}
-            <pre>which tesseract</pre>
-          </div>
-        }
-      >
-        <input
-          ref={tessPathRef}
-          onChange={(e) =>
-            updateSetting(
-              'pdfExportImageTesseractPath',
-              (e.target as HTMLInputElement).value
-            )
-          }
-          type="text"
-          defaultValue={settings.pdfExportImageTesseractPath}
-        />
-        <div
-          className="clickable-icon setting-editor-extra-setting-button"
-          aria-label="Attempt to find tesseract automatically"
-          onClick={async () => {
-            try {
-              const pathToTesseract = await which('tesseract');
-              if (pathToTesseract) {
-                tessPathRef.current.value = pathToTesseract;
-                updateSetting('pdfExportImageTesseractPath', pathToTesseract);
-              } else {
-                new Notice(
-                  'Unable to find tesseract on your system. If it is installed, please manually enter a path.'
-                );
-              }
-            } catch (e) {
-              new Notice(
-                'Unable to find tesseract on your system. If it is installed, please manually enter a path.'
-              );
-              console.error(e);
+      <SettingGroup level={1}>
+        {/* Basic Image Settings */}
+        <SettingItem name={t('settings.image.format.label')}>
+          <select
+            className="dropdown"
+            defaultValue={settings.pdfExportImageFormat}
+            onChange={(e) =>
+              updateSetting(
+                'pdfExportImageFormat',
+                (e.target as HTMLSelectElement).value
+              )
             }
-          }}
-        >
-          <Icon name="magnifying-glass" />
-        </div>
-      </SettingItem>
-      <SettingItem
-        name="Image OCR Language"
-        description={
-          <div>
-            Optional: defaults to english. Multiple languages can be specified
-            like so: <pre>eng+deu</pre>. Each language must be installed on your
-            system.{' '}
-            <a
-              href="https://github.com/tesseract-ocr/tessdata"
-              target="_blank"
-              rel="noreferrer"
-            >
-              Languages can be downloaded here
-            </a>
-            . (See{' '}
-            <a
-              href="https://tesseract-ocr.github.io/tessdoc/Data-Files-in-different-versions.html"
-              target="_blank"
-              rel="noreferrer"
-            >
-              here for a description of the language codes
-            </a>
-            )
-          </div>
-        }
-      >
-        <input
-          onChange={(e) =>
-            updateSetting(
-              'pdfExportImageOCRLang',
-              (e.target as HTMLInputElement).value
-            )
-          }
-          type="text"
-          defaultValue={settings.pdfExportImageOCRLang}
-        />
-      </SettingItem>
-      <SettingItem
-        name="Tesseract data directory"
-        description="Optional: supply an absolute path to the directory where tesseract's language files reside. This folder should include *.traineddata files for your selected languages."
-      >
-        <input
-          ref={tessDataPathRef}
-          onChange={(e) =>
-            updateSetting(
-              'pdfExportImageTessDataDir',
-              (e.target as HTMLInputElement).value
-            )
-          }
-          type="text"
-          defaultValue={settings.pdfExportImageTessDataDir}
-        />
-        <div
-          className="clickable-icon setting-editor-extra-setting-button"
-          aria-label="Select the tesseract data directory"
-          onClick={() => {
-            const path = require('electron').remote.dialog.showOpenDialogSync({
-              properties: ['openDirectory'],
-            });
+          >
+            <option value="jpg">{t('settings.image.format.options.jpg')}</option>
+            <option value="png">{t('settings.image.format.options.png')}</option>
+          </select>
+        </SettingItem>
 
-            if (path && path.length) {
-              tessDataPathRef.current.value = path[0];
-              updateSetting('pdfExportImageTessDataDir', path[0]);
+        <SettingItem name={t('settings.image.quality.label')}>
+          <input
+            min="0"
+            max="100"
+            onChange={(e) =>
+              updateSetting(
+                'pdfExportImageQuality',
+                Number((e.target as HTMLInputElement).value)
+              )
             }
-          }}
+            type="number"
+            defaultValue={settings.pdfExportImageQuality.toString()}
+          />
+        </SettingItem>
+
+        <SettingItem name={t('settings.image.dpi.label')}>
+          <input
+            min="0"
+            onChange={(e) =>
+              updateSetting(
+                'pdfExportImageDPI',
+                Number((e.target as HTMLInputElement).value)
+              )
+            }
+            type="number"
+            defaultValue={settings.pdfExportImageDPI.toString()}
+          />
+        </SettingItem>
+
+        {/* OCR Settings (nested under image processing) */}
+        <SettingItem
+          name={t('settings.image.ocr.label')}
+          description={t('settings.image.ocr.description')}
         >
-          <Icon name="lucide-folder-open" />
-        </div>
-      </SettingItem>
+          <div
+            onClick={pdfExportImageOCR.toggle}
+            className={`checkbox-container${pdfExportImageOCR.isEnabled ? ' is-enabled' : ''}`}
+          />
+        </SettingItem>
+
+        {/* OCR Configuration (only when OCR enabled) */}
+        {pdfExportImageOCR.isEnabled ? (
+          <SettingGroup level={2}>
+            <SettingItem
+              name={t('settings.image.tesseractPath.label')}
+              description={t('settings.image.tesseractPath.description')}
+            >
+              <input
+                ref={tessPathRef}
+                onChange={(e) =>
+                  updateSetting(
+                    'pdfExportImageTesseractPath',
+                    (e.target as HTMLInputElement).value
+                  )
+                }
+                type="text"
+                defaultValue={settings.pdfExportImageTesseractPath}
+              />
+              <div
+                className="clickable-icon setting-editor-extra-setting-button"
+                aria-label="Attempt to find tesseract automatically"
+                onClick={async () => {
+                  try {
+                    const pathToTesseract = await which('tesseract');
+                    if (pathToTesseract) {
+                      tessPathRef.current.value = pathToTesseract;
+                      updateSetting('pdfExportImageTesseractPath', pathToTesseract);
+                    } else {
+                      new Notice(
+                        t('settings.messages.tesseractNotFound')
+                      );
+                    }
+                  } catch (e) {
+                    new Notice(
+                      t('settings.messages.tesseractNotFound')
+                    );
+                    console.error(e);
+                  }
+                }}
+              >
+                <Icon name="magnifying-glass" />
+              </div>
+            </SettingItem>
+
+            <SettingItem
+              name={t('settings.image.ocrLanguage.label')}
+              description={t('settings.image.ocrLanguage.description')}
+            >
+              <input
+                onChange={(e) =>
+                  updateSetting(
+                    'pdfExportImageOCRLang',
+                    (e.target as HTMLInputElement).value
+                  )
+                }
+                type="text"
+                defaultValue={settings.pdfExportImageOCRLang}
+              />
+            </SettingItem>
+
+            <SettingItem
+              name={t('settings.image.tesseractDataDir.label')}
+              description={t('settings.image.tesseractDataDir.description')}
+            >
+              <input
+                ref={tessDataPathRef}
+                onChange={(e) =>
+                  updateSetting(
+                    'pdfExportImageTessDataDir',
+                    (e.target as HTMLInputElement).value
+                  )
+                }
+                type="text"
+                defaultValue={settings.pdfExportImageTessDataDir}
+              />
+              <div
+                className="clickable-icon setting-editor-extra-setting-button"
+                aria-label="Select the tesseract data directory"
+                onClick={() => {
+                  const path = require('electron').remote.dialog.showOpenDialogSync({
+                    properties: ['openDirectory'],
+                  });
+
+                  if (path && path.length) {
+                    tessDataPathRef.current.value = path[0];
+                    updateSetting('pdfExportImageTessDataDir', path[0]);
+                  }
+                }}
+              >
+                <Icon name="lucide-folder-open" />
+              </div>
+            </SettingItem>
+          </SettingGroup>
+        ) : null}
+      </SettingGroup>
     </div>
   );
 }

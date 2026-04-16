@@ -94,3 +94,30 @@
 .zt-setting-item .setting-item-control .setting-item {
   border-bottom: none;
 }
+
+/* Hierarchical Setting Groups - Multi-level indentation */
+.zt-setting-group {
+  margin-top: 12px;
+  margin-bottom: 12px;
+  margin-left: 4px;
+  border-left: 2px solid var(--background-modifier-border);
+  padding-left: 18px;
+}
+
+/* Level-based indentation for nested groups */
+.zt-setting-group-level-1 {
+  margin-left: 4px;
+  padding-left: 18px;
+}
+
+.zt-setting-group-level-2 {
+  margin-left: 4px;
+  padding-left: 18px;
+  border-left-width: 2px;
+}
+
+.zt-setting-group-level-3 {
+  margin-left: 4px;
+  padding-left: 18px;
+  border-left-width: 1px;
+}

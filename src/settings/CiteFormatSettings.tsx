@@ -1,6 +1,7 @@
 import React, { ChangeEvent } from 'react';
 import { SingleValue } from 'react-select';
 import AsyncSelect from 'react-select/async';
+import { useTranslation } from 'react-i18next';
 
 import { CitationFormat, Format } from '../types';
 import { Icon } from './Icon';
@@ -24,6 +25,8 @@ export function CiteFormatSettings({
   updateFormat,
   removeFormat,
 }: FormatSettingsProps) {
+  const { t } = useTranslation();
+
   const defaultStyle = React.useMemo(() => {
     if (!format.cslStyle) return undefined;
 
@@ -117,7 +120,7 @@ export function CiteFormatSettings({
   return (
     <div className="zt-format">
       <div className="zt-format__form">
-        <div className="zt-format__label">Name</div>
+        <div className="zt-format__label">{t('settings.citation.name')}</div>
         <div className="zt-format__input-wrapper">
           <input onChange={onChangeName} type="text" value={format.name} />
           <div className="zt-format__delete">
@@ -129,28 +132,28 @@ export function CiteFormatSettings({
       </div>
 
       <div className="zt-format__form">
-        <div className="zt-format__label">Output Format</div>
+        <div className="zt-format__label">{t('settings.citation.outputFormat')}</div>
         <div className="zt-format__input-wrapper">
           <select
             className="dropdown"
             defaultValue={format.format}
             onChange={onChangeFormat}
           >
-            <option value="latex">LaTeX</option>
-            <option value="biblatex">BibLaTeX</option>
-            <option value="pandoc">Pandoc</option>
-            <option value="formatted-citation">Formatted Citation</option>
+            <option value="latex">{t('settings.citation.options.latex')}</option>
+            <option value="biblatex">{t('settings.citation.options.biblatex')}</option>
+            <option value="pandoc">{t('settings.citation.options.pandoc')}</option>
+            <option value="formatted-citation">{t('settings.citation.options.formattedCitation')}</option>
             <option value="formatted-bibliography">
-              Formatted Bibliography
+              {t('settings.citation.options.formattedBibliography')}
             </option>
-            <option value="template">Template</option>
+            <option value="template">{t('settings.citation.options.template')}</option>
           </select>
         </div>
       </div>
 
       {format.format === 'template' && (
         <div className="zt-format__form">
-          <div className="zt-format__label">Template</div>
+          <div className="zt-format__label">{t('settings.citation.template')}</div>
           <div className="zt-format__input-wrapper">
             <textarea
               rows={4}
@@ -190,8 +193,8 @@ export function CiteFormatSettings({
           <div className="zt-format__form">
             <div className="zt-format__label">
               {format.format === 'template'
-                ? 'Bibliography Style'
-                : 'Citation Style'}
+                ? t('settings.citation.bibliographyStyle')
+                : t('settings.citation.citationStyle')}
             </div>
             <div className="zt-format__input-wrapper">
               <AsyncSelect
@@ -239,7 +242,7 @@ export function CiteFormatSettings({
 
       {['latex', 'biblatex'].contains(format.format) && (
         <div className="zt-format__form">
-          <div className="zt-format__label">Citation Command</div>
+          <div className="zt-format__label">{t('settings.citation.command')}</div>
           <div className="zt-format__input-wrapper">
             <input
               type="text"

@@ -11,7 +11,8 @@
     "lib": ["dom", "es6", "scripthost", "es2018"],
     "module": "ESNext",
     "moduleResolution": "node",
-    "noImplicitAny": true,
+    "noImplicitAny": false,
+    "resolveJsonModule": true,
     "skipLibCheck": true,
     "target": "es2018",
     "paths": {

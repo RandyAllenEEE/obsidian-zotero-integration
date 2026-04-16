@@ -2,6 +2,7 @@ import download from 'download';
 import { Notice, debounce } from 'obsidian';
 import os from 'os';
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   checkEXEVersion,
   doesEXEExist,
@@ -17,6 +18,7 @@ import { ZoteroConnectorSettings } from 'src/types';
 
 import { Icon } from './Icon';
 import { SettingItem } from './SettingItem';
+import { useDebouncedInput } from './useSettings';
 
 export const currentVersion = '1.0.15';
 export const internalVersion = 1;
@@ -86,31 +88,29 @@ export function AssetDownloader(props: {
   settings: ZoteroConnectorSettings;
   updateSetting: (key: keyof ZoteroConnectorSettings, value: any) => void;
 }) {
+  const { t } = useTranslation();
   const [isUpToDate, setIsUpToDate] = React.useState<boolean | null>(null);
   const [isLoading, setIsLoading] = React.useState(false);
   const [exists, setExists] = React.useState(false);
-  const [overridePath, setOverridePath] = React.useState(
-    props.settings.exeOverridePath
-  );
 
-  const setOverride = React.useMemo(
-    () =>
-      debounce(
-        (path: string) => {
-          setOverridePath(path);
-          props.updateSetting('exeOverridePath', path);
-        },
-        150,
-        true
-      ),
-    []
+  // Use improved debounced input with immediate UI feedback
+  const {
+    value: overridePath,
+    setValue: setOverridePathLocal,
+    isDirty,
+  } = useDebouncedInput(
+    props.settings.exeOverridePath || '',
+    (path: string) => {
+      props.updateSetting('exeOverridePath', path);
+    },
+    500
   );
 
   React.useEffect(() => {
-    const exists = doesEXEExist(overridePath);
-    setExists(exists);
+    const pathExists = doesEXEExist(overridePath);
+    setExists(pathExists);
 
-    if (exists) {
+    if (pathExists) {
       checkEXEVersion(overridePath)
         .then((version) => {
           setIsUpToDate(`v${currentVersion}` === version);
@@ -132,15 +132,11 @@ export function AssetDownloader(props: {
     });
   }, []);
 
-  const desc = [
-    'Extracting data from PDFs requires an external tool.',
-    'This plugin will still work without it, but annotations will not be included in exports.',
-  ];
+  const desc = t('settings.pdf.description');
 
   const overrideDesc = (
     <>
-      Override the path to the PDF utility. Specify an absolute path to the
-      pdfannots2json executable.{' '}
+      {t('settings.pdf.pathOverride.description')}{' '}
       <a
         href="https://github.com/mgmeyers/pdfannots2json/releases"
         target="_blank"
@@ -154,9 +150,12 @@ export function AssetDownloader(props: {
   );
 
   const Override = (
-    <SettingItem name="PDF Utility Path Override" description={overrideDesc}>
+    <SettingItem
+      name={t('settings.pdf.pathOverride.label')}
+      description={overrideDesc}
+    >
       <input
-        onChange={(e) => setOverride((e.target as HTMLInputElement).value)}
+        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setOverridePathLocal((e.target as HTMLInputElement).value)}
         type="text"
         spellCheck={false}
         value={overridePath}
@@ -170,7 +169,7 @@ export function AssetDownloader(props: {
           });
 
           if (path && path.length) {
-            setOverride(path[0]);
+            setOverridePathLocal(path[0]);
           }
         }}
       >
@@ -182,13 +181,13 @@ export function AssetDownloader(props: {
   if (exists && isUpToDate) {
     return (
       <>
-        <SettingItem name="PDF Utility" description={desc.join(' ')}>
+        <SettingItem name={t('settings.pdf.heading')} description={desc}>
           <div className="zt-asset-success">
             <div className="zt-asset-success__icon">
               <Icon name="check-small" />
             </div>
             <div className="zt-asset-success__message">
-              PDF utility is up to date.
+              {t('settings.pdf.upToDate')}
             </div>
           </div>
         </SettingItem>
@@ -199,7 +198,7 @@ export function AssetDownloader(props: {
 
   const descFrag = (
     <>
-      {desc.join(' ')}{' '}
+      {desc}{' '}
       {exists && (
         <strong className="mod-warning">
           The PDF extraction tool requires updating. Please re-download.
@@ -213,10 +212,10 @@ export function AssetDownloader(props: {
 
   return (
     <>
-      <SettingItem name="PDF Utility" description={descFrag}>
+      <SettingItem name={t('settings.pdf.heading')} description={descFrag}>
         {!overridePath && (
           <button disabled={isLoading} onClick={handleDownload}>
-            {isLoading ? 'Downloading...' : 'Download'}
+            {isLoading ? t('settings.messages.downloading') : t('settings.buttons.download')}
           </button>
         )}
       </SettingItem>

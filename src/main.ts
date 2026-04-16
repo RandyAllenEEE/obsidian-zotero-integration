@@ -2,6 +2,7 @@ import Fuse from 'fuse.js';
 import { EditableFileView, Events, Plugin, TFile } from 'obsidian';
 import { shellPath } from 'shell-path';
 
+import './i18n/config'; // Initialize i18n
 import { DataExplorerView, viewType } from './DataExplorerView';
 import { LoadingModal } from './bbt/LoadingModal';
 import { getCAYW } from './bbt/cayw';

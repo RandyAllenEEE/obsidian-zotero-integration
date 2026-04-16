@@ -1,6 +1,7 @@
 import React from 'react';
 import { SingleValue } from 'react-select';
 import AsyncSelect from 'react-select/async';
+import { useTranslation } from 'react-i18next';
 
 import { ExportFormat } from '../types';
 import { Icon } from './Icon';
@@ -27,6 +28,8 @@ export function ExportFormatSettings({
   updateFormat,
   removeFormat,
 }: FormatSettingsProps) {
+  const { t } = useTranslation();
+
   const loadFileOptions = React.useMemo(() => {
     const fileSearch = buildFileSearch();
     return buildLoadFileOptions(fileSearch);
