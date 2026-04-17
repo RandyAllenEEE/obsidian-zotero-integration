@@ -9,6 +9,7 @@ import {
   RenderCiteTemplateParams,
   ZoteroConnectorSettings,
 } from '../types';
+import { summarizePdf } from '../ai/ZoteroAutoSummarize';
 import { applyBasicTemplates } from './basicTemplates/applyBasicTemplates';
 import { CiteKey, getCiteKeyFromAny, getCiteKeys } from './cayw';
 import { processZoteroAnnotationNotes } from './exportNotes';
@@ -644,6 +645,8 @@ export async function exportToMarkdown(
       fileContent: string;
       lastImportDate: moment.Moment;
       existingAnnotations: string;
+      isFirstImport: boolean;
+      pdfUrl: string | null;
     }
   > = new Map();
 
@@ -662,12 +665,28 @@ export async function exportToMarkdown(
         ? getLastExport(existingMarkdown)
         : moment(0);
 
+      // Determine if this is a first import (no previous latest_import_time in frontmatter)
+      let isFirstImport = !existingMarkdownFile;
+      if (existingMarkdownFile) {
+        const oldFrontmatter = (existingMarkdownFile as any).frontmatter ?? {};
+        isFirstImport = !oldFrontmatter['latest_import_time'];
+      }
+
+      // Extract PDF URL from the first PDF attachment
+      const pdfAttachment = (item.attachments as any[])
+        .find(a => a.path?.endsWith('.pdf'));
+      const pdfUrl = pdfAttachment
+        ? 'file://' + pdfAttachment.path.replace(/^\//, '').replace(/ /g, '%20')
+        : null;
+
       toRender.set(markdownPath, {
         item,
         file: existingMarkdownFile,
         fileContent: existingMarkdown,
         lastImportDate,
         existingAnnotations,
+        isFirstImport,
+        pdfUrl,
       });
     }
   };
@@ -806,8 +825,7 @@ export async function exportToMarkdown(
 
   for (const [markdownPath, data] of toRender.entries()) {
     try {
-      const { existingAnnotations, file, fileContent, item, lastImportDate } =
-        data;
+      const { existingAnnotations, file, fileContent, item, lastImportDate, isFirstImport, pdfUrl } = data;
 
       const templateData = await getTemplateData(
         markdownPath,
@@ -831,13 +849,24 @@ export async function exportToMarkdown(
 
       createdOrUpdatedMarkdownFiles.push(markdownPath);
 
-      // Forcefully update citekey in frontmatter to ensure "Update Item Note" works
+      // Write plugin-managed frontmatter fields (citekey, latest_import_time, zotero_pdf)
+      // processFrontMatter will overwrite existing values for the same key (no duplicates in YAML)
       if (file || (await app.vault.adapter.exists(markdownPath))) {
         const targetFile = file || (app.vault.getAbstractFileByPath(markdownPath) as TFile);
         if (targetFile instanceof TFile) {
           await app.fileManager.processFrontMatter(targetFile, (frontmatter) => {
             frontmatter['citekey'] = item.citekey;
+            frontmatter['latest_import_time'] = moment().toISOString(true);
+            frontmatter['zotero_pdf'] = pdfUrl;
           });
+        }
+      }
+
+      // Auto-trigger AI summary for first-import files when setting is enabled
+      if (isFirstImport && params.settings.autoSummarize) {
+        const targetFile = file || (app.vault.getAbstractFileByPath(markdownPath) as TFile);
+        if (targetFile instanceof TFile) {
+          summarizePdf(app, targetFile, params.settings);
         }
       }
     } catch (e) {

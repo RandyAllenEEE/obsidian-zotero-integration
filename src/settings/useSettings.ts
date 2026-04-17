@@ -87,6 +87,8 @@ export function useDebouncedArrayState<T>(
 ): {
   items: T[];
   updateItem: (index: number, item: T) => void;
+  addItem: (item: T) => void;
+  removeItem: (index: number) => void;
   isDirty: boolean;
 } {
   const [items, setItems] = React.useState(initialValue);
@@ -118,13 +120,27 @@ export function useDebouncedArrayState<T>(
     [debouncedUpdate]
   );
 
+  // Prepend to match plugin.settings.*Formats.unshift() in addCiteFormat / addExportFormat
+  const addItem = React.useCallback(
+    (item: T) => {
+      setItems((prev) => [item, ...prev]);
+      setIsDirty(true);
+    },
+    []
+  );
+
+  const removeItem = React.useCallback((index: number) => {
+    setItems((prev) => prev.filter((_, i) => i !== index));
+    setIsDirty(true);
+  }, []);
+
   // Reset to initial value if it changes externally
   React.useEffect(() => {
     setItems(initialValue);
     setIsDirty(false);
   }, [initialValue]);
 
-  return { items, updateItem, isDirty };
+  return { items, updateItem, addItem, removeItem, isDirty };
 }
 
 /**

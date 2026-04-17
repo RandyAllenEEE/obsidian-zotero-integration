@@ -255,8 +255,10 @@ export default class ZoteroConnector extends Plugin {
           return;
         }
 
-        // Use frontmatter directly if available, otherwise fallback to cache
-        const citekey = (file.frontmatter || {}).citekey;
+        // Use frontmatter directly if available (runtime field; not on TFile type)
+        const rawCitekey = ((file as unknown as { frontmatter?: Record<string, unknown> }).frontmatter || {})
+          .citekey;
+        const citekey = typeof rawCitekey === 'string' && rawCitekey ? rawCitekey : undefined;
         if (!citekey) {
           new Notice(t('notices.noCitekeyInFrontmatter'));
           return;
@@ -311,6 +313,8 @@ export default class ZoteroConnector extends Plugin {
       })
     );
 
+    // Auto-summary is now triggered from exportToMarkdown on first import.
+    // Manual trigger via command palette:
     this.addCommand({
       id: 'zdc-trigger-ai-summary',
       name: t('commands.triggerAiSummary'),
@@ -323,14 +327,6 @@ export default class ZoteroConnector extends Plugin {
         }
       },
     });
-
-    this.registerEvent(
-      this.app.workspace.on('file-open', (file) => {
-        if (file && file instanceof TFile && file.extension === 'md' && this.settings.autoSummarize) {
-          summarizePdf(this.app, file, this.settings);
-        }
-      })
-    );
 
     app.workspace.trigger('parse-style-settings');
 

@@ -1,46 +1,67 @@
 import { App, Notice, TFile, requestUrl } from 'obsidian';
 import { ZoteroConnectorSettings } from '../types';
 
+// Module-level in-flight guard to prevent concurrent summarize calls on the same file
+const inFlightFiles = new Set<string>();
+
+/**
+ * Extract PDF path: prefer frontmatter.zotero_pdf, fallback to legacy regex scan.
+ */
+async function getPdfPath(app: App, file: TFile, fileContent: string): Promise<string | null> {
+  // Priority 1: frontmatter field (reliable, set by plugin on every import)
+  const fm = (file as any).frontmatter ?? {};
+  const fmPath = fm['zotero_pdf'];
+  if (fmPath && typeof fmPath === 'string' && fmPath.trim()) {
+    return fmPath.trim();
+  }
+
+  // Priority 2: legacy regex scan for backwards compatibility with manually written notes
+  const pdfLinkMatch = fileContent.match(/- \*\*full-text pdf\*\*:\s*(?:\[.*?\])?\((file:\/\/.+?)\)/i);
+  if (!pdfLinkMatch || !pdfLinkMatch[1]) {
+    return null;
+  }
+  return pdfLinkMatch[1];
+}
+
 export const summarizePdf = async (app: App, file: TFile, settings: ZoteroConnectorSettings) => {
+  // In-flight guard
+  if (inFlightFiles.has(file.path)) {
+    return;
+  }
+  inFlightFiles.add(file.path);
+
+  try {
     // Basic validation
     if (!settings.aiApiKeyId) {
-        new Notice('❌ Zotero AI: API Key not configured.');
-        return;
+      new Notice('❌ Zotero AI: API Key not configured.');
+      return;
     }
 
     const fileContent = await app.vault.read(file);
 
-    // 1. Parse PDF Path (Link Based Logic)
-    // Matches: - **full-text pdf**: [optional](file:///path)
-    const pdfLinkMatch = fileContent.match(/- \*\*full-text pdf\*\*:\s*(?:\[.*?\])?\((file:\/\/.+?)\)/i);
-
-    if (!pdfLinkMatch || !pdfLinkMatch[1]) {
-        return; // No PDF link found, silently exit (auto-trigger context)
+    // 1. Get PDF path (frontmatter first, fallback to regex)
+    const pdfLink = await getPdfPath(app, file, fileContent);
+    if (!pdfLink) {
+      return; // No PDF link found, silently exit
     }
 
-    let pdfPath = pdfLinkMatch[1];
-    pdfPath = pdfPath.replace(/^file:\/\/\/?/, "");
+    let pdfPath = pdfLink.replace(/^file:\/\//, "");
     pdfPath = decodeURIComponent(pdfPath);
     // Windows drive letter fix: /C:/path -> C:/path
     if (/^[a-zA-Z]:/.test(pdfPath) === false && /^\/[a-zA-Z]:/.test(pdfPath)) {
-        pdfPath = pdfPath.substring(1);
+      pdfPath = pdfPath.substring(1);
     }
 
     // Node fs is needed to read local file
     const fs = require('fs');
     if (!fs.existsSync(pdfPath)) {
-        new Notice(`❌ Zotero AI: PDF not found at ${pdfPath}`);
-        return;
+      new Notice(`❌ Zotero AI: PDF not found at ${pdfPath}`);
+      return;
     }
 
-    // Check if summary already exists to avoid re-triggering?
-    // The script used logic to update existing or create new.
-    // If auto-trigger on open, we might want to check if "## AI 速读" exists and maybe skipped if present?
-    // The user requirement says "replace the original anchor". 
-    // IF the anchor exists, we proceed.
-
+    // Check that the anchor exists before proceeding
     if (!fileContent.includes(settings.aiSummaryAnchor || '%% AI Summary %%')) {
-        return; // Anchor not found
+      return; // Anchor not found
     }
 
     new Notice("🚀 Zotero AI: Reading PDF...");
@@ -50,20 +71,25 @@ export const summarizePdf = async (app: App, file: TFile, settings: ZoteroConnec
     const textContent = await smartExtractText(app, pdfBuffer, maxPages);
 
     if (!textContent || textContent.length < 100) {
-        new Notice("⚠️ Zotero AI: Could not extract text from PDF.");
-        return;
+      new Notice("⚠️ Zotero AI: Could not extract text from PDF.");
+      return;
     }
 
-    // Retrieve API Key from SecretStorage
+    // Retrieve API Key from SecretStorage (async API)
     const secretStorage = (app as any).secretStorage;
     let apiKey = "";
     if (secretStorage && settings.aiApiKeyId) {
+      try {
+        apiKey = await secretStorage.getSecret(settings.aiApiKeyId);
+      } catch (e) {
+        // getSecret may be sync in older Obsidian versions, fall back to direct call
         apiKey = secretStorage.getSecret(settings.aiApiKeyId);
+      }
     }
 
     if (!apiKey) {
-        new Notice("❌ Zotero AI: Failed to retrieve API Key from SecretStorage.");
-        return;
+      new Notice("❌ Zotero AI: Failed to retrieve API Key from SecretStorage.");
+      return;
     }
 
     // 3. AI Call
@@ -85,7 +111,7 @@ export const summarizePdf = async (app: App, file: TFile, settings: ZoteroConnec
         ---
         **分支 A：如果是研究论文 (Research Paper)**
         侧重具体的拓扑、控制或应用。请包含但不限于：
-        
+
         ### 核心贡献 (Core Contribution)
         - 一句话总结解决了什么痛点（Pain Point）。
         - 明确是提出了新拓扑、新控制还是新调制，并总结技术路线。
@@ -128,42 +154,42 @@ export const summarizePdf = async (app: App, file: TFile, settings: ZoteroConnec
     new Notice("🤖 Zotero AI: Analyzing...");
 
     try {
-        const response = await requestUrl({
-            url: settings.aiApiUrl || "https://open.cherryin.net/v1/chat/completions",
-            method: "POST",
-            headers: {
-                "Authorization": `Bearer ${apiKey}`,
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-                model: settings.aiModel,
-                messages: [
-                    {
-                        role: "user",
-                        content: prompt + "\n\n论文内容摘要:\n" + textContent.substring(0, maxText)
-                    }
-                ]
-            })
-        });
+      const response = await requestUrl({
+        url: settings.aiApiUrl || "https://open.cherryin.net/v1/chat/completions",
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${apiKey}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          model: settings.aiModel,
+          messages: [
+            {
+              role: "user",
+              content: prompt + "\n\n论文内容摘要:\n" + textContent.substring(0, maxText)
+            }
+          ]
+        })
+      });
 
-        const aiText = response.json.choices[0].message.content;
+      const aiText = response.json.choices[0].message.content;
 
-        // 4. Update File
-        // 4. Update File
-        // We replace the Anchor with the content
-        const anchor = settings.aiSummaryAnchor || '%% AI Summary %%';
+      // 4. Update File: replace anchor with AI summary
+      const anchor = settings.aiSummaryAnchor || '%% AI Summary %%';
+      let newContent = fileContent.replace(anchor, `${aiText}\n\n`);
 
-        let newContent = fileContent.replace(anchor, `${aiText}\n\n`);
-
-        if (newContent !== fileContent) {
-            await app.vault.modify(file, newContent);
-            new Notice("✅ Zotero AI: Summary generated.");
-        }
+      if (newContent !== fileContent) {
+        await app.vault.modify(file, newContent);
+        new Notice("✅ Zotero AI: Summary generated.");
+      }
 
     } catch (error) {
-        console.error(error);
-        new Notice("❌ Zotero AI Error: " + error.message);
+      console.error(error);
+      new Notice("❌ Zotero AI Error: " + error.message);
     }
+  } finally {
+    inFlightFiles.delete(file.path);
+  }
 }
 
 // Helper Functions
